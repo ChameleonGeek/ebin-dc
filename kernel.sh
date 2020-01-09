@@ -154,7 +154,7 @@ BuildKernel52(){
 	# BUILDS KERNEL 4.4.52
 	KernelToolchain()
 	
-	KernelDirMake "4.4.52"
+	KernelDirMake '4.4.52'
 	
 	KernelClone()
 	Note "Checking out repository"
@@ -177,7 +177,7 @@ BuildKernel8(){
 	# BUILDS KERNEL VERSION 4.4.4
 	KernelToolchain()
 	
-	KernelDirMake "4.4.8"
+	KernelDirMake '4.4.8'
 	KernelClone()
 
 	Note "Checking out repository"
