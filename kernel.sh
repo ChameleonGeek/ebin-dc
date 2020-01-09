@@ -70,7 +70,7 @@ RadioKernelVersions(){
 	PROMPT="Select the kernel version to compile"
 	retval="$(whiptail --title "$TITLE" --radiolist "$PROMPT" 20 78 4 \
 		"8" "Version 4.4.8" OFF \
-		"52" "Version 4.4.52" ON 3>&1 1>&2 2>&3)"
+		"52" "Version 4.4.52" ON 3>&1 1>&2 2>&3)" 
 	KERNELDOT="$retval"
 }
 
