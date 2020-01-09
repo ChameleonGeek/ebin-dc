@@ -47,11 +47,11 @@ Splash(){ # Alerts user of major steps in the configuration process
 	# Usage: Splash <display text>
 	title="$1"
 	clear
-	echo "${GRN}=============================================================================="
+	echo -e "${GRN}=============================================================================="
 	echo "=============================================================================="
 	printf "%*s\n" $(((${#title}+80)/2)) "$title"
 	echo "=============================================================================="
-	echo "==============================================================================${NC}"
+	echo -e "==============================================================================${NC}"
 }
 
 Query(){ # Uses whiptail to ask user for input
@@ -63,6 +63,20 @@ Query(){ # Uses whiptail to ask user for input
 	else
 	    echo ""
 	fi
+}
+
+RadioKernelVersions(){
+	TITLE="Kernel Version"
+	PROMPT="Select the kernel version to compile"
+	retval="$(whiptail --title "$TITLE" --radiolist "$PROMPT" 20 78 4 \
+		"8" "Version 4.4.8" OFF \
+		"52" "Version 4.4.52" ON)"
+	KERNELDOT="$retval"
+}
+
+WhipNotify(){ # Uses whiptail to notify the user of important information.  Waits for the user to OK
+	# Usage: WhipNotify <title> <message>
+	whiptail --title "$1" --msgbox "$2" 8 78
 }
 
 YesNo(){ # Uses whiptail to ask yes/no questions
@@ -163,6 +177,7 @@ KernelPatchIdentify(){
 
 BuildKernel52(){
 	# BUILDS KERNEL 4.4.52
+	WhipNotify "Kernel Building and Configuration Script" "Do you want to build the 4.4.52 Kernel?\n\nThis process may take as long as an hour to complete."
 	KernelToolchain
 	
 	KernelDirMake '4.4.52'
@@ -182,6 +197,7 @@ BuildKernel52(){
 	KernelConfigBaseline
 	KernelCheckMenuConfig
 	KernelSetPath
+	KernelCompile
 }
 
 BuildKernel8(){
@@ -203,57 +219,66 @@ BuildKernel8(){
 }
 
 QueryKernel(){
-  if [ "$(YesNo 'Build Kernel?', 'Do you want to build the kernel?')" == "1" ]; then
-    BuildKernel52
-  else
-    return 0
-  fi
-  
+	if [ "$(YesNo 'Build Kernel?', 'Do you want to build the kernel?')" == "0" ]; then
+		return 0
+	fi
+	
+	RadioKernelVersions
+	case "$KERNELDOT" in
+		"52")
+			BuildKernel52
+			;;
+		"8")
+			BuildKernel8
+			;;
+	esac
 }
 
 BuildImage(){
-  cd ~ 
-  if [ -d ubuntu_16.04 ]; then
-    sudo rm -r ubuntu_16.04
-  fi
-  mkdir -p ubuntu_16.04
-  cd ubuntu_16.04
-  Note "Downloading CD Image"
-  wget http://cdimage.ubuntu.com/releases/16.04.5/release/ubuntu-16.04.4-server-arm64.iso
-  mkdir tmp
-  Note "Mounting CD Image"
-  sudo mount -o loop ubuntu-16.04.4-server-arm64.iso tmp/
-  
-  Note "Unsquashing CD Filesystem"
-  sudo unsquashfs -d rootfs/ tmp/install/filesystem.squashfs
+	cd ~ 
+	if [ -d ubuntu_16.04 ]; then
+		sudo rm -r ubuntu_16.04
+	fi
+	mkdir -p ubuntu_16.04
+	cd ubuntu_16.04
+	Note "Downloading CD Image"
+	wget http://cdimage.ubuntu.com/releases/16.04.5/release/ubuntu-16.04.4-server-arm64.iso
+	mkdir tmp
+	Note "Mounting CD Image"
+	sudo mount -o loop ubuntu-16.04.4-server-arm64.iso tmp/
 
-  Note "Making a couple of changes to the filesystem"
-  sudo sed -i "s|root:x:0:0:root:/root:/bin/bash|root::0:0:root:/root:/bin/bash|" rootfs/etc/passwd
+	Note "Unsquashing CD Filesystem"
+	sudo unsquashfs -d rootfs/ tmp/install/filesystem.squashfs
+	
+	Note "Making a couple of changes to the filesystem"
+	sudo sed -i "s|root:x:0:0:root:/root:/bin/bash|root::0:0:root:/root:/bin/bash|" rootfs/etc/passwd
+	Note "Enabling the USB serial port"
+	sudo echo "ttyMV0" >> rootfs/etc/securetty
+	Note "Transferring the kernel into the image"
+	sudo cp "$HOMEPATH/kernel/4.4.$KERNELDOT/arch/arm64/boot/Image" rootfs/boot/
+	sudo cp "$HOMEPATH/kernel/4.4.$KERNELDOT/arch/arm64/boot/dts/marvell/armada-3720-community.dtb" rootfs/boot/
+ 
+	Note "Downloading ChameleonGeek initial EspressoBin configuration script"
+	wget "https://raw.githubusercontent.com/ChameleonGeek/ebin-dc/master/ebin-config.sh"
+	chmod +x ebin-config.sh
+	sudo mv ebin-config.sh rootfs/root/ebin-config.sh
 
-  Note "Enabling the USB serial port"
-  sudo echo "ttyMV0" >> rootfs/etc/securetty
-
-  Note "Transferring the kernel into the image"
-  sudo cp "$HOMEPATH/kernel/4.4.$KERNELDOT/arch/arm64/boot/Image" rootfs/boot/
-  sudo cp "$HOMEPATH/kernel/4.4.$KERNELDOT/arch/arm64/boot/dts/marvell/armada-3720-community.dtb" rootfs/boot/
-  
-  Note "Downloading ChameleonGeek initial EspressoBin configuration script"
-  wget "https://raw.githubusercontent.com/ChameleonGeek/ebin-dc/master/ebin-config.sh"
-  chmod +x ebin-config.sh
-  sudo mv ebin-config.sh rootfs/root/ebin-config.sh
-
-  Note "Creating Image File"
-  sudo tar -cjvf rootfs.tar.bz2 -C rootfs/ .
-  sudo mv rootfs.tar.bz2 "$HOMEPATH/"
+	Note "Creating Image File"
+	sudo tar -cjvf rootfs.tar.bz2 -C rootfs/ .
+	sudo mv rootfs.tar.bz2 "$HOMEPATH/"
 }
 
 QueryImage(){
-  if [ "$(YesNo 'Build Image?', 'Do you want to build the Ubuntu 16.04LTS Image?')" == "1" ]; then
-    BuildImage
-  else
-    return 0
-  fi
+	if [ "$(YesNo 'Build Image?', 'Do you want to build the Ubuntu 16.04LTS Image?')" == "1" ]; then
+		BuildImage
+	else
+		return 0
+	fi
 }
 
-QueryKernel
-QueryImage
+ProcessManage(){
+	QueryKernel
+	QueryImage
+}
+
+ProcessManage
