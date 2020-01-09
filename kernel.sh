@@ -175,24 +175,24 @@ BuildKernel52(){
 
 BuildKernel8(){
 	# BUILDS KERNEL VERSION 4.4.4
-	KernelToolchain()
+	KernelToolchain
 	
 	KernelDirMake '4.4.8'
-	KernelClone()
+	KernelClone
 
 	Note "Checking out repository"
 	git checkout linux-4.4.8-armada-17.02-espressobin
 
-	KernelCompVars()
-	KernelConfigBaseline()
-	KernelCheckMenuConfig()
-	KernelSetPath()
-  	KernelCompile()
+	KernelCompVars
+	KernelConfigBaseline
+	KernelCheckMenuConfig
+	KernelSetPath
+  	KernelCompile
 }
 
 QueryKernel(){
   if (YesNo("Build Kernel?", "Do you want to build the kernel?")); then
-    BuildKernel52()
+    BuildKernel52
   else
     return 0
   fi
@@ -237,7 +237,7 @@ BuildImage(){
 
 QueryImage(){
   if (YesNo("Build Image?", "Do you want to build the Ubuntu 16.04LTS Image?")); then
-    BuildImage()
+    BuildImage
   else
     return 0
   fi
