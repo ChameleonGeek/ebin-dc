@@ -137,6 +137,7 @@ KernelConfigBaseline(){
 KernelCheckMenuConfig(){
 	# SPAWNS THE MENUCONFIG DIALOG IF THE USER WISHES
 	# make menuconfig
+	return 0
 }
 
 KernelSetPath(){
