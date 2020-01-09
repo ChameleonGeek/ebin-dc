@@ -11,7 +11,11 @@
 # necessary to make a new EspressoBin v7 into an Ubuntu 16.04 LTS Domain 
 # Controller
 # 
-# https://github.com/ChameleonGeek/ebin-dc/README.md
+#	This script has been developed and tested using Ubuntu 18.04.1.  Other
+# system configurations may result in errors.
+#
+# 	View https://github.com/ChameleonGeek/ebin-dc/README.md for the purpose 
+# and details regarding this script
 # 
 # ==============================================================================
 # ==============================================================================
@@ -19,6 +23,8 @@ cd ~
 HOMEPATH="$PWD"
 SETACL=1
 KERNELDOT=52
+KERNELEMAIL='me@gmail.com'
+KERNELUSERNAME='espressobin developer'
 
 # ======================================
 #               VARIABLES
@@ -34,7 +40,7 @@ YEL='\033[1;33m'
 #   BASIC USER INTERACTION FUNCTIONS
 # ======================================
 Note(){
-	echo "${GRN}$1${NC}"    
+	echo -e "${GRN}$1${NC}"    
 }
 
 Splash(){ # Alerts user of major steps in the configuration process
@@ -148,6 +154,11 @@ KernelSetPath(){
 KernelCompile(){
 	Note "Compiling the kernel"
 	make -j4
+}
+
+KernelPatchIdentify(){
+	git config --global user.name "$KERNELUSERNAME"
+	git config --global user.email "me@gmail.com"
 }
 
 BuildKernel52(){
