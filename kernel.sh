@@ -158,7 +158,7 @@ KernelCompile(){
 
 KernelPatchIdentify(){
 	git config --global user.name "$KERNELUSERNAME"
-	git config --global user.email "me@gmail.com"
+	git config --global user.email "$KERNELEMAIL"
 }
 
 BuildKernel52(){
@@ -166,7 +166,7 @@ BuildKernel52(){
 	KernelToolchain
 	
 	KernelDirMake '4.4.52'
-	
+	KernelPatchIdentify
 	KernelClone
 	Note "Checking out repository"
 	git checkout 6adee55d3e07e3cc99ec6248719aac042e58c5e6 -b espressobin-v7
@@ -189,6 +189,7 @@ BuildKernel8(){
 	KernelToolchain
 	
 	KernelDirMake '4.4.8'
+	KernelPatchIdentify
 	KernelClone
 
 	Note "Checking out repository"
