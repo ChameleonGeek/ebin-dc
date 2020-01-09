@@ -154,13 +154,22 @@ BuildImage(){
   Note("Transferring the kernel into the image")
   sudo cp ~/kernel/4.4.8/arch/arm64/boot/Image rootfs/boot/
   sudo cp ~/kernel/4.4.8/arch/arm64/boot/dts/marvell/armada-3720-community.dtb rootfs/boot/
+  
+  Note("Downloading ChameleonGeek initial EspressoBin configuration script")
+  wget "https://raw.githubusercontent.com/ChameleonGeek/ebin-dc/master/ebin-config.sh"
+  chmod +x ebin-config.sh
+  sudo mv ebin-config.sh rootfs/root/ebin-config.sh
 
-  Note("")
-$ sudo tar -cjvf rootfs.tar.bz2 -C rootfs/ .
+  Note("Creating Image File")
+  sudo tar -cjvf rootfs.tar.bz2 -C rootfs/ .
 }
 
 QueryImage(){
-
+  if (YesNo("Build Image?", "Do you want to build the Ubuntu 16.04LTS Image?")); then
+    BuildImage()
+  else
+    return 0
+  fi
 }
 
 QueryKernel()
