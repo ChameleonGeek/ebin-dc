@@ -152,11 +152,11 @@ KernelCompile(){
 
 BuildKernel52(){
 	# BUILDS KERNEL 4.4.52
-	KernelToolchain()
+	KernelToolchain
 	
 	KernelDirMake '4.4.52'
 	
-	KernelClone()
+	KernelClone
 	Note "Checking out repository"
 	git checkout 6adee55d3e07e3cc99ec6248719aac042e58c5e6 -b espressobin-v7
 	
@@ -167,10 +167,10 @@ BuildKernel52(){
 	Note "Applying patches"
 	git am *.patch
 
-	KernelCompVars()	
-	KernelConfigBaseline()
-	KernelCheckMenuConfig()
-	KernelSetPath()
+	KernelCompVars
+	KernelConfigBaseline
+	KernelCheckMenuConfig
+	KernelSetPath
 }
 
 BuildKernel8(){
