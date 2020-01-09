@@ -67,7 +67,7 @@ Query(){ # Uses whiptail to ask user for input
 
 YesNo(){ # Uses whiptail to ask yes/no questions
     # Usage: YesNo <whiptail title> <prompt>
-    if (whiptail --title "$1" --YesNo "$2" 8 78 3>&1 1>&2 2>&3) then
+    if (whiptail --title "$1" --yesno "$2" 8 78 3>&1 1>&2 2>&3) then
         echo "1"
     else
         echo "0"
