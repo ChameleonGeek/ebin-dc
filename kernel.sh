@@ -200,7 +200,7 @@ QueryKernel(){
 }
 
 BuildImage(){
-  cd ~
+  cd ~ 
   if [ -d ubuntu_16.04 ]; then
     sudo rm -r ubuntu_16.04
   fi
