@@ -196,6 +196,7 @@ QueryKernel(){
   else
     return 0
   fi
+  
 }
 
 BuildImage(){
