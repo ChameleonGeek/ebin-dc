@@ -191,7 +191,7 @@ BuildKernel8(){
 }
 
 QueryKernel(){
-  if (YesNo("Build Kernel?", "Do you want to build the kernel?")); then
+  if [ "$(yesno 'Build Kernel?', 'Do you want to build the kernel?')" == "1" ]; then
     BuildKernel52
   else
     return 0
@@ -222,8 +222,8 @@ BuildImage(){
   sudo echo "ttyMV0" >> rootfs/etc/securetty
 
   Note "Transferring the kernel into the image"
-  sudo cp "/home/michael/kernel/4.4.$KERNELDOT/arch/arm64/boot/Image" rootfs/boot/
-  sudo cp "/home/michael/kernel/4.4.$KERNELDOT/arch/arm64/boot/dts/marvell/armada-3720-community.dtb" rootfs/boot/
+  sudo cp "$HOMEPATH/kernel/4.4.$KERNELDOT/arch/arm64/boot/Image" rootfs/boot/
+  sudo cp "$HOMEPATH/kernel/4.4.$KERNELDOT/arch/arm64/boot/dts/marvell/armada-3720-community.dtb" rootfs/boot/
   
   Note "Downloading ChameleonGeek initial EspressoBin configuration script"
   wget "https://raw.githubusercontent.com/ChameleonGeek/ebin-dc/master/ebin-config.sh"
@@ -232,16 +232,16 @@ BuildImage(){
 
   Note "Creating Image File"
   sudo tar -cjvf rootfs.tar.bz2 -C rootfs/ .
-  sudo mv rootfs.tar.bz2 /home/michael/
+  sudo mv rootfs.tar.bz2 "$HOMEPATH/"
 }
 
 QueryImage(){
-  if (YesNo("Build Image?", "Do you want to build the Ubuntu 16.04LTS Image?")); then
+  if [ "$(yesno 'Build Image?', 'Do you want to build the Ubuntu 16.04LTS Image?')" == "1" ]; then
     BuildImage
   else
     return 0
   fi
 }
 
-QueryKernel()
-QueryImage()
+QueryKernel
+QueryImage
