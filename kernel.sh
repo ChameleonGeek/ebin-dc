@@ -72,25 +72,32 @@ varLC(){
 	echo "$1" | tr '[A-Z]' '[a-z]'
 }
 
-BuildKernel(){
-  cd ~
-  if [ -d toolchain ]; then
-    sudo rm -r toolchain
-  fi
-  # Download the toolchain to compile the kernel
-  Note("Downloading toolchain to compile the revised kernel")
-  # Thanks to http://wiki.espressobin.net/tiki-index.php?page=Build+From+Source+-+Toolchain
-  mkdir -p toolchain
-  cd toolchain
-  Note("Downloading Toolchain")
-  wget https://releases.linaro.org/components/toolchain/binaries/5.2-2015.11-2/aarch64-linux-gnu/gcc-linaro-5.2-2015.11-2-x86_64_aarch64-linux-gnu.tar.xz
-  Note("Extracting Toolchain")
-  tar -xvf gcc-linaro-5.2-2015.11-2-x86_64_aarch64-linux-gnu.tar.xz
+KernelToolchain(){
+	cd ~
+  	if [ -d toolchain ]; then
+    		sudo rm -r toolchain
+  	fi
+  	# Download the toolchain to compile the kernel
+  	Note("Downloading toolchain to compile the revised kernel")
+  	# Thanks to http://wiki.espressobin.net/tiki-index.php?page=Build+From+Source+-+Toolchain
+  	mkdir -p toolchain
+  	cd toolchain
+  	Note("Downloading Toolchain")
+  	wget https://releases.linaro.org/components/toolchain/binaries/5.2-2015.11-2/aarch64-linux-gnu/gcc-linaro-5.2-2015.11-2-x86_64_aarch64-linux-gnu.tar.xz
+  	Note("Extracting Toolchain")
+  	tar -xvf gcc-linaro-5.2-2015.11-2-x86_64_aarch64-linux-gnu.tar.xz
+	
+  	# Ensure the proper tools are installed
+  	# Thanks to https://linux.com/tutorials/how-compile-linux-kernel-0
+  	Note("Installing necessary software to build the kernel")
+  	sudo apt-get install git fakeroot build-essential ncurses-dev xz-utils libssl-dev bc flex libelf-dev bison -y
+}
 
-  # Ensure the proper tools are installed
-  # Thanks to https://linux.com/tutorials/how-compile-linux-kernel-0
-  Note("Installing necessary software to build the kernel")
-  sudo apt-get install git fakeroot build-essential ncurses-dev xz-utils libssl-dev bc flex libelf-dev bison -y
+BuildKernel
+
+BuildKernel8(){
+  cd ~
+  KernelToolchain()
 
   cd ~
   if [ -d kernel ]; then
@@ -152,8 +159,8 @@ BuildImage(){
   sudo echo "ttyMV0" >> rootfs/etc/securetty
 
   Note("Transferring the kernel into the image")
-  sudo cp ~/kernel/4.4.8/arch/arm64/boot/Image rootfs/boot/
-  sudo cp ~/kernel/4.4.8/arch/arm64/boot/dts/marvell/armada-3720-community.dtb rootfs/boot/
+  sudo cp /home/michael/kernel/4.4.8/arch/arm64/boot/Image rootfs/boot/
+  sudo cp /home/michael/kernel/4.4.8/arch/arm64/boot/dts/marvell/armada-3720-community.dtb rootfs/boot/
   
   Note("Downloading ChameleonGeek initial EspressoBin configuration script")
   wget "https://raw.githubusercontent.com/ChameleonGeek/ebin-dc/master/ebin-config.sh"
@@ -162,6 +169,7 @@ BuildImage(){
 
   Note("Creating Image File")
   sudo tar -cjvf rootfs.tar.bz2 -C rootfs/ .
+  sudo mv rootfs.tar.bz2 /home/michael/
 }
 
 QueryImage(){
