@@ -96,6 +96,11 @@ varLC(){
 	echo "$1" | tr '[A-Z]' '[a-z]'
 }
 
+KernelUserInfo(){
+	KERNELUSERNAME="$(Query "" "Git User Name" "Git needs your name to compile the kernel")"
+	KERNELEMAIL="$(Query "" "Git Email Address" "Git needs your email address to compile the kernel")"
+}
+
 KernelToolchain(){
 	cd "$HOMEPATH"
   	if [ -d toolchain ]; then
@@ -178,6 +183,7 @@ KernelPatchIdentify(){
 BuildKernel52(){
 	# BUILDS KERNEL 4.4.52
 	WhipNotify "Kernel Building and Configuration Script" "Do you want to build the 4.4.52 Kernel?\n\nThis process may take as long as an hour to complete."
+	KernelUserInfo
 	KernelToolchain
 	
 	KernelDirMake '4.4.52'
@@ -202,6 +208,8 @@ BuildKernel52(){
 
 BuildKernel8(){
 	# BUILDS KERNEL VERSION 4.4.4
+	WhipNotify "Kernel Building and Configuration Script" "Do you want to build the 4.4.8 Kernel?\n\nThis process may take as long as an hour to complete."
+	KernelUserInfo
 	KernelToolchain
 	
 	KernelDirMake '4.4.8'
