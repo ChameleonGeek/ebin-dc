@@ -61,7 +61,7 @@ Query(){ # Uses whiptail to ask user for input
 
 YesNo(){ # Uses whiptail to ask yes/no questions
     # Usage: YesNo <whiptail title> <prompt>
-    if (whiptail --title "$1" --yesno "$2" 8 78 3>&1 1>&2 2>&3) then
+    if (whiptail --title "$1" --YesNo "$2" 8 78 3>&1 1>&2 2>&3) then
         echo "1"
     else
         echo "0"
@@ -191,7 +191,7 @@ BuildKernel8(){
 }
 
 QueryKernel(){
-  if [ "$(yesno 'Build Kernel?', 'Do you want to build the kernel?')" == "1" ]; then
+  if [ "$(YesNo 'Build Kernel?', 'Do you want to build the kernel?')" == "1" ]; then
     BuildKernel52
   else
     return 0
@@ -236,7 +236,7 @@ BuildImage(){
 }
 
 QueryImage(){
-  if [ "$(yesno 'Build Image?', 'Do you want to build the Ubuntu 16.04LTS Image?')" == "1" ]; then
+  if [ "$(YesNo 'Build Image?', 'Do you want to build the Ubuntu 16.04LTS Image?')" == "1" ]; then
     BuildImage
   else
     return 0
