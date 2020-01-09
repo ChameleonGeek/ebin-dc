@@ -108,17 +108,15 @@ BuildKernel(){
   Note("Creating baseline configuration file")
   make mvebu_v8_lsp_defconfig
   
-  # TODO:: Update .config with POSIX ACLs enabled for EXT3 and EXT4 filesystems
   Note("Enabling ACLs in the config file")
-  sed -i "s|||" .config
-  sed -i "s|||" .config
-  
+  sudo sed -i "s|# CONFIG_EXT3_FS_POSIX_ACL is not set|CONFIG_EXT3_FS_POSIX_ACL=y|" .config
+  sudo sed -i "s|# CONFIG_EXT4_FS_POSIX_ACL is not set|CONFIG_EXT4_FS_POSIX_ACL=y|" .config
+
   Note("Updating PATH to complete building the kernel")
   export PATH=$PATH:$HOME/toolchain/gcc-linaro-5.2-2015.11-2-x86_64_aarch64-linux-gnu/bin
   
   Note("Compiling the kernel")
   make -j4
-
 }
 
 QueryKernel(){
