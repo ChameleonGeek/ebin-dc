@@ -79,7 +79,7 @@ BuildKernel(){
   fi
   # Download the toolchain to compile the kernel
   Note("Downloading toolchain to compile the revised kernel")
-  # From http://wiki.espressobin.net/tiki-index.php?page=Build+From+Source+-+Toolchain
+  # Thanks to http://wiki.espressobin.net/tiki-index.php?page=Build+From+Source+-+Toolchain
   mkdir -p toolchain
   cd toolchain
   Note("Downloading Toolchain")
@@ -88,9 +88,11 @@ BuildKernel(){
   tar -xvf gcc-linaro-5.2-2015.11-2-x86_64_aarch64-linux-gnu.tar.xz
 
   # Ensure the proper tools are installed
+  # Thanks to https://linux.com/tutorials/how-compile-linux-kernel-0
   Note("Installing necessary software to build the kernel")
   sudo apt-get install git fakeroot build-essential ncurses-dev xz-utils libssl-dev bc flex libelf-dev bison -y
 
+  cd ~
   if [ -d kernel ]; then
     sudo rm -r kernel
   fi
@@ -147,16 +149,8 @@ BuildImage(){
   sudo sed -i "s|root:x:0:0:root:/root:/bin/bash|root::0:0:root:/root:/bin/bash|" rootfs/etc/passwd
 
   Note("Enabling the USB serial port")
-$ sudo vim rootfs/etc/securetty
-[...]
-# Serial Console for MIPS Swarm
-duart0
-duart1
+  sudo echo "ttyMV0" >> rootfs/etc/securetty
 
-# s390 and s390x ports in LPAR mode
-ttysclp0
-ttyMV0
-  
   Note("Transferring the kernel into the image")
   sudo cp ~/kernel/4.4.8/arch/arm64/boot/Image rootfs/boot/
   sudo cp ~/kernel/4.4.8/arch/arm64/boot/dts/marvell/armada-3720-community.dtb rootfs/boot/
