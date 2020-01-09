@@ -82,18 +82,18 @@ KernelToolchain(){
     		sudo rm -r toolchain
   	fi
   	# Download the toolchain to compile the kernel
-  	Note("Downloading toolchain to compile the revised kernel")
+  	Note "Downloading toolchain to compile the revised kernel"
   	# Thanks to http://wiki.espressobin.net/tiki-index.php?page=Build+From+Source+-+Toolchain
   	mkdir -p toolchain
   	cd toolchain
-  	Note("Downloading Toolchain")
+  	Note "Downloading Toolchain"
   	wget https://releases.linaro.org/components/toolchain/binaries/5.2-2015.11-2/aarch64-linux-gnu/gcc-linaro-5.2-2015.11-2-x86_64_aarch64-linux-gnu.tar.xz
-  	Note("Extracting Toolchain")
+  	Note "Extracting Toolchain"
   	tar -xvf gcc-linaro-5.2-2015.11-2-x86_64_aarch64-linux-gnu.tar.xz
 	
   	# Ensure the proper tools are installed
   	# Thanks to https://linux.com/tutorials/how-compile-linux-kernel-0
-  	Note("Installing necessary software to build the kernel")
+  	Note "Installing necessary software to build the kernel"
   	sudo apt-get install git fakeroot build-essential ncurses-dev xz-utils libssl-dev bc flex libelf-dev bison -y
 }
 
@@ -111,23 +111,23 @@ KernelDirMake(){
 KernelClone(){
 	# CLONES KERNEL REPOSITORY
 	# REPO IS THE SAME FOR 4.4.8 AND 4.4.52
-	Note("Cloning linux-marvell repository")
+	Note "Cloning linux-marvell repository"
 	git clone https://github.com/MarvellEmbeddedProcessors/linux-marvell .
 }
 
 KernelCompVars(){
-	Note("Setting compiler variables")
+	Note "Setting compiler variables"
 	export ARCH=arm64
 	export CROSS_COMPILE=aarch64-linux-gnu-
 }
 
 KernelConfigBaseline(){
 	# CREATES THE DEFAULT CONFIG FILE, AND ENABLES ACLS IF APPROPRIATE
-	Note("Creating baseline configuration file")
+	Note "Creating baseline configuration file"
   	make mvebu_v8_lsp_defconfig
 	
 	if [ "$SETACL" == 1 ]; then
-		Note("Enabling ACLs in the config file")
+		Note "Enabling ACLs in the config file"
   		sudo sed -i "s|# CONFIG_EXT3_FS_POSIX_ACL is not set|CONFIG_EXT3_FS_POSIX_ACL=y|" .config
   		sudo sed -i "s|# CONFIG_EXT4_FS_POSIX_ACL is not set|CONFIG_EXT4_FS_POSIX_ACL=y|" .config
 	fi
@@ -140,12 +140,12 @@ KernelCheckMenuConfig(){
 }
 
 KernelSetPath(){
-	Note("Updating PATH to complete building the kernel")
+	Note "Updating PATH to complete building the kernel"
 	export PATH=$PATH:$HOMEPATH/toolchain/gcc-linaro-5.2-2015.11-2-x86_64_aarch64-linux-gnu/bin
 }
 
 KernelCompile(){
-	Note("Compiling the kernel")
+	Note "Compiling the kernel"
 	make -j4
 }
 
@@ -153,17 +153,17 @@ BuildKernel52(){
 	# BUILDS KERNEL 4.4.52
 	KernelToolchain()
 	
-	KernelDirMake("4.4.52")
+	KernelDirMake "4.4.52"
 	
 	KernelClone()
-	Note("Checking out repository")
+	Note "Checking out repository"
 	git checkout 6adee55d3e07e3cc99ec6248719aac042e58c5e6 -b espressobin-v7
 	
-	Note("Downloading kernel patches")
+	Note "Downloading kernel patches"
 	wget -O ebin_v7_kernel_patches.zip http://wiki.espressobin.net/tiki-download_file.php?fileId=210
-	Note("Unzipping patches")
+	Note "Unzipping patches"
 	unzip ebin_v7_kernel_patches.zip
-	Note("Applying patches")
+	Note "Applying patches"
 	git am *.patch
 
 	KernelCompVars()	
@@ -176,10 +176,10 @@ BuildKernel8(){
 	# BUILDS KERNEL VERSION 4.4.4
 	KernelToolchain()
 	
-	KernelDirMake("4.4.8")
+	KernelDirMake "4.4.8"
 	KernelClone()
 
-	Note("Checking out repository")(
+	Note "Checking out repository"
 	git checkout linux-4.4.8-armada-17.02-espressobin
 
 	KernelCompVars()
@@ -204,31 +204,31 @@ BuildImage(){
   fi
   mkdir -p ubuntu_16.04
   cd ubuntu_16.04
-  Note("Downloading CD Image")
+  Note "Downloading CD Image"
   wget http://cdimage.ubuntu.com/releases/16.04.5/release/ubuntu-16.04.4-server-arm64.iso
   mkdir tmp
-  Note("Mounting CD Image")
+  Note "Mounting CD Image"
   sudo mount -o loop ubuntu-16.04.4-server-arm64.iso tmp/
   
-  Note("Unsquashing CD Filesystem")
+  Note "Unsquashing CD Filesystem"
   sudo unsquashfs -d rootfs/ tmp/install/filesystem.squashfs
 
-  Note("Making a couple of changes to the filesystem")
+  Note "Making a couple of changes to the filesystem"
   sudo sed -i "s|root:x:0:0:root:/root:/bin/bash|root::0:0:root:/root:/bin/bash|" rootfs/etc/passwd
 
-  Note("Enabling the USB serial port")
+  Note "Enabling the USB serial port"
   sudo echo "ttyMV0" >> rootfs/etc/securetty
 
-  Note("Transferring the kernel into the image")
+  Note "Transferring the kernel into the image"
   sudo cp "/home/michael/kernel/4.4.$KERNELDOT/arch/arm64/boot/Image" rootfs/boot/
   sudo cp "/home/michael/kernel/4.4.$KERNELDOT/arch/arm64/boot/dts/marvell/armada-3720-community.dtb" rootfs/boot/
   
-  Note("Downloading ChameleonGeek initial EspressoBin configuration script")
+  Note "Downloading ChameleonGeek initial EspressoBin configuration script"
   wget "https://raw.githubusercontent.com/ChameleonGeek/ebin-dc/master/ebin-config.sh"
   chmod +x ebin-config.sh
   sudo mv ebin-config.sh rootfs/root/ebin-config.sh
 
-  Note("Creating Image File")
+  Note "Creating Image File"
   sudo tar -cjvf rootfs.tar.bz2 -C rootfs/ .
   sudo mv rootfs.tar.bz2 /home/michael/
 }
