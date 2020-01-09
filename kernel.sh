@@ -15,6 +15,11 @@
 # 
 # ==============================================================================
 # ==============================================================================
+cd ~
+HOMEPATH="$PWD"
+SETACL=1
+KERNELDOT=52
+
 # ======================================
 #               VARIABLES
 # ======================================
@@ -29,8 +34,7 @@ YEL='\033[1;33m'
 #   BASIC USER INTERACTION FUNCTIONS
 # ======================================
 Note(){
-	echo "${GRN}$1${NC}"
-    
+	echo "${GRN}$1${NC}"    
 }
 
 Splash(){ # Alerts user of major steps in the configuration process
@@ -73,7 +77,7 @@ varLC(){
 }
 
 KernelToolchain(){
-	cd ~
+	cd "$HOMEPATH"
   	if [ -d toolchain ]; then
     		sudo rm -r toolchain
   	fi
@@ -93,44 +97,101 @@ KernelToolchain(){
   	sudo apt-get install git fakeroot build-essential ncurses-dev xz-utils libssl-dev bc flex libelf-dev bison -y
 }
 
-BuildKernel
+KernelDirMake(){
+	# DELETES PREVIOUS KERNEL DIRECTORIES IF THEY EXIST AND CREATES COMPILE DIRECTORY
+	# USAGE <kernel version>
+	cd "$HOMEPATH"
+	if [ -d kernel ]; then
+		rm -r kernel
+	fi
+	mkdir -p "kernel/$1"
+	cd "kernel/$1/"	
+}
+
+KernelClone(){
+	# CLONES KERNEL REPOSITORY
+	# REPO IS THE SAME FOR 4.4.8 AND 4.4.52
+	Note("Cloning linux-marvell repository")
+	git clone https://github.com/MarvellEmbeddedProcessors/linux-marvell .
+}
+
+KernelCompVars(){
+	Note("Setting compiler variables")
+	export ARCH=arm64
+	export CROSS_COMPILE=aarch64-linux-gnu-
+}
+
+KernelConfigBaseline(){
+	# CREATES THE DEFAULT CONFIG FILE, AND ENABLES ACLS IF APPROPRIATE
+	Note("Creating baseline configuration file")
+  	make mvebu_v8_lsp_defconfig
+	
+	if [ "$SETACL" == 1 ]; then
+		Note("Enabling ACLs in the config file")
+  		sudo sed -i "s|# CONFIG_EXT3_FS_POSIX_ACL is not set|CONFIG_EXT3_FS_POSIX_ACL=y|" .config
+  		sudo sed -i "s|# CONFIG_EXT4_FS_POSIX_ACL is not set|CONFIG_EXT4_FS_POSIX_ACL=y|" .config
+	fi
+}
+
+# TODO:: Ask the user at the beginning of script if this is desired, or if defaults are ok
+KernelCheckMenuConfig(){
+	# SPAWNS THE MENUCONFIG DIALOG IF THE USER WISHES
+	# make menuconfig
+}
+
+KernelSetPath(){
+	Note("Updating PATH to complete building the kernel")
+	export PATH=$PATH:$HOMEPATH/toolchain/gcc-linaro-5.2-2015.11-2-x86_64_aarch64-linux-gnu/bin
+}
+
+KernelCompile(){
+	Note("Compiling the kernel")
+	make -j4
+}
+
+BuildKernel52(){
+	# BUILDS KERNEL 4.4.52
+	KernelToolchain()
+	
+	KernelDirMake("4.4.52")
+	
+	KernelClone()
+	Note("Checking out repository")
+	git checkout 6adee55d3e07e3cc99ec6248719aac042e58c5e6 -b espressobin-v7
+	
+	Note("Downloading kernel patches")
+	wget -O ebin_v7_kernel_patches.zip http://wiki.espressobin.net/tiki-download_file.php?fileId=210
+	Note("Unzipping patches")
+	unzip ebin_v7_kernel_patches.zip
+	Note("Applying patches")
+	git am *.patch
+
+	KernelCompVars()	
+	KernelConfigBaseline()
+	KernelCheckMenuConfig()
+	KernelSetPath()
+}
 
 BuildKernel8(){
-  cd ~
-  KernelToolchain()
+	# BUILDS KERNEL VERSION 4.4.4
+	KernelToolchain()
+	
+	KernelDirMake("4.4.8")
+	KernelClone()
 
-  cd ~
-  if [ -d kernel ]; then
-    sudo rm -r kernel
-  fi
-  mkdir -p kernel/4.4.8
-  cd kernel/4.4.8/
-  Note("Cloning linux-marvell repository")
-  git clone https://github.com/MarvellEmbeddedProcessors/linux-marvell .
-  Note("Checking out repositary")(
-  git checkout linux-4.4.8-armada-17.02-espressobin
+	Note("Checking out repository")(
+	git checkout linux-4.4.8-armada-17.02-espressobin
 
-  Note("Setting compiler variables")
-  export ARCH=arm64
-  export CROSS_COMPILE=aarch64-linux-gnu-
-
-  Note("Creating baseline configuration file")
-  make mvebu_v8_lsp_defconfig
-  
-  Note("Enabling ACLs in the config file")
-  sudo sed -i "s|# CONFIG_EXT3_FS_POSIX_ACL is not set|CONFIG_EXT3_FS_POSIX_ACL=y|" .config
-  sudo sed -i "s|# CONFIG_EXT4_FS_POSIX_ACL is not set|CONFIG_EXT4_FS_POSIX_ACL=y|" .config
-
-  Note("Updating PATH to complete building the kernel")
-  export PATH=$PATH:$HOME/toolchain/gcc-linaro-5.2-2015.11-2-x86_64_aarch64-linux-gnu/bin
-  
-  Note("Compiling the kernel")
-  make -j4
+	KernelCompVars()
+	KernelConfigBaseline()
+	KernelCheckMenuConfig()
+	KernelSetPath()
+  	KernelCompile()
 }
 
 QueryKernel(){
   if (YesNo("Build Kernel?", "Do you want to build the kernel?")); then
-    BuildKernel()
+    BuildKernel52()
   else
     return 0
   fi
@@ -159,8 +220,8 @@ BuildImage(){
   sudo echo "ttyMV0" >> rootfs/etc/securetty
 
   Note("Transferring the kernel into the image")
-  sudo cp /home/michael/kernel/4.4.8/arch/arm64/boot/Image rootfs/boot/
-  sudo cp /home/michael/kernel/4.4.8/arch/arm64/boot/dts/marvell/armada-3720-community.dtb rootfs/boot/
+  sudo cp "/home/michael/kernel/4.4.$KERNELDOT/arch/arm64/boot/Image" rootfs/boot/
+  sudo cp "/home/michael/kernel/4.4.$KERNELDOT/arch/arm64/boot/dts/marvell/armada-3720-community.dtb" rootfs/boot/
   
   Note("Downloading ChameleonGeek initial EspressoBin configuration script")
   wget "https://raw.githubusercontent.com/ChameleonGeek/ebin-dc/master/ebin-config.sh"
