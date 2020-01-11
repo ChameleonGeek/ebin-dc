@@ -287,11 +287,11 @@ BuildImage(){
 	sudo sed -i "s|root:x:0:0:root:/root:/bin/bash|root::0:0:root:/root:/bin/bash|" rootfs/etc/passwd
 	Note "Enabling the USB serial port"
 	sudo echo "ttyMV0" >> rootfs/etc/securetty
-	Note "Updating repositories to include Universe sources"
-	sed -i 's| xenial main| xenial main universe|' rootfs/etc/apt/sources.list
-	sed -i 's| xenial-security main| xenial-security main universe|' rootfs/etc/apt/sources.list
-	sed -i 's| xenial-updates main| xenial-updates main universe|' rootfs/etc/apt/sources.list
-	sed -i 's| universe universe| universe|' rootfs/etc/apt/sources.list
+	#Note "Updating repositories to include Universe sources"
+	#sed -i 's| xenial main| xenial main universe|' rootfs/etc/apt/sources.list
+	#sed -i 's| xenial-security main| xenial-security main universe|' rootfs/etc/apt/sources.list
+	#sed -i 's| xenial-updates main| xenial-updates main universe|' rootfs/etc/apt/sources.list
+	#sed -i 's| universe universe| universe|' rootfs/etc/apt/sources.list
 
 	Note "Transferring the kernel into the image"
 	sudo cp "$HOMEPATH/kernel/4.4.$KERNELDOT/arch/arm64/boot/Image" rootfs/boot/
