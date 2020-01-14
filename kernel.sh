@@ -296,7 +296,8 @@ BuildImage2(){ # <os version>
 	if [ -d ubuntu_image ]; then
 		sudo rm -r ubuntu_image
 	fi
-
+	
+	mkdir ubuntu_image
 	cd ubuntu_image
 	if [ -d tmp ]; then
 		sudo rm -r tmp
