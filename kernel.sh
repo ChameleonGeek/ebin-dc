@@ -43,6 +43,10 @@ YEL='\033[1;33m'
 # ======================================
 #   BASIC USER INTERACTION FUNCTIONS
 # ======================================
+Alert(){
+	echo -e "${RED}$1${NC}"
+}
+
 Note(){
 	echo -e "${GRN}$1${NC}"
 }
@@ -287,6 +291,7 @@ QueryKernel(){
 
 BuildImage2(){ # <os version>
 	RadioOSVersions
+	DriveNotice
 	cd ~
 	if [ -d ubuntu_image ]; then
 		sudo rm -r ubuntu_image
@@ -439,6 +444,13 @@ DriveImage(){
 	sudo rm -rf /ebincard
 
 	Note "Drive has been prepped and is safe to disconnect."
+}
+
+DriveNotice(){
+	Alert "Now is a good time to identify the drive to image."
+	Note "Open a new terminal window"
+	Note "Run the command \"lsblk\" twice, once with the drive to image NOT installed, and then with the drive installed."
+	Note "Identify the change in the output of the command.  The change will be the proper drive."
 }
 
 ProcessManage(){
