@@ -20,14 +20,15 @@
 # ==============================================================================
 # ==============================================================================
 cd ~
-HOMEPATH="$PWD"		# Manages the home directory for the user for flexible file management
-SETACL=1					# Specifies whether ACLs should be nabled in the kernel
-KERNELDOT=52			# Holds the selected kernel version
-KERNELEMAIL='me@gmail.com'	# User email needed by Git in order to compile the kernel
-KERNELUSERNAME='espressobin developer'	# User name needed by Git in order to compile the kernel
-KERNELBUILT=0			# Flag identifying if the kernel has been built
-OSBUILT=0					# Flag identifying if the Ubuntu OS Image has been built with kernel
-REMDIRPATH=""			# Removable drive path for installing onto SD card
+HOMEPATH="$PWD"                         # Manages the home directory for the user for flexible file management
+KERNELBUILT=0                           # Flag identifying if the kernel has been built
+KERNELDOT=52                            # Holds the selected kernel version
+KERNELEMAIL='me@gmail.com'              # User email needed by Git in order to compile the kernel
+KERNELUSERNAME='espressobin developer'  # User name needed by Git in order to compile the kernel
+OSBUILT=0                               # Flag identifying if the Ubuntu OS Image has been built with kernel
+OSVERSION=0                             # Holds the selected OS Version
+REMDIRPATH=""                           # Removable drive path for installing onto SD card
+SETACL=1                                # Specifies whether ACLs should be nabled in the kernel
 
 # ======================================
 #               VARIABLES
@@ -75,6 +76,16 @@ RadioKernelVersions(){
 		"8" "Version 4.4.8" OFF \
 		"52" "Version 4.4.52" ON 3>&1 1>&2 2>&3)"
 	KERNELDOT="$retval"
+}
+
+RadioOSVersions(){
+	TITLE="Ubuntu Version"
+	PROMPT="Select the Ubuntu version to build"
+#		"14" "Version 14.04.05 LTS" OFF \
+	retval="$(whiptail --title "$TITLE" --radiolist "$PROMPT" 20 78 4 \
+		"16" "Version 16.04.4 (Xenial) LTS" ON \
+		"18" "Version 18.04.3 (Bionic) LTS" OFF 3>&1 1>&2 2>&3)"
+	OSVERSION="$retval"
 }
 
 WhipNotify(){ # Uses whiptail to notify the user of important information.  Waits for the user to OK
@@ -164,6 +175,9 @@ KernelConfigBaseline(){
 # TODO:: Ask the user at the beginning of script if this is desired, or if defaults are ok
 KernelCheckMenuConfig(){
 	# SPAWNS THE MENUCONFIG DIALOG IF THE USER WISHES
+	if [ "$(YesNo 'Customize Kernel?', 'Do you want to customize the kernel?')" == "1" ]; then
+		make menuconfig
+	fi
 	# make menuconfig
 	return 0
 }
@@ -199,7 +213,7 @@ OSImagePathQuery(){
 	done
 
   # Query which partition the image should be installed on and save to variable
-	REMDIRPATH="$(whiptail "${whiptail_args[@]}" 3>&1 1>&2 2>&3)"
+	REMDIRPATH="$(whiptail "${whiptail_args[@]}" 3>&1 1>&2 2>&3)" 
 }
 
 
@@ -256,6 +270,10 @@ QueryKernel(){
 		return 0
 	fi
 
+	if [ "$(YesNo 'Enable ACLs?', 'This script was created to enable ACLs in the kernel.  Do you want to keep this setting?')" == "0" ]; then
+		SETACL=0
+	fi
+	
 	RadioKernelVersions
 	case "$KERNELDOT" in
 		"52")
@@ -265,6 +283,69 @@ QueryKernel(){
 			BuildKernel8
 			;;
 	esac
+}
+
+BuildImage2(){ # <os version>
+	RadioOSVersions
+	cd ~
+	if [ -d ubuntu_image ]; then
+		sudo rm -r ubuntu_image
+	fi
+
+	cd ubuntu_image
+	if [ -d tmp ]; then
+		sudo rm -r tmp
+	fi
+	mkdir tmp
+
+	case "$OSVERSION" in
+		"14")
+			# TODO::  Work through 14x process
+			return 0
+			;;
+		"16")
+			if ! [ -e "ubuntu-16.04.4-server-arm64.iso" ]; then
+				Note "Downloading CD Image"
+				wget http://cdimage.ubuntu.com/releases/16.04.5/release/ubuntu-16.04.4-server-arm64.iso
+				Note "Mounting CD Image"
+				sudo mount -o loop ubuntu-16.04.4-server-arm64.iso tmp/
+			fi
+			;;
+		"18")
+			if ! [ -e "/ubuntu-18.04.3-server-arm64.iso" ]; then
+				Note "Downloading CD Image"
+				wget http://cdimage.ubuntu.com/releases/18.04.3/release/ubuntu-18.04.3-server-arm64.iso
+				Note "Mounting CD Image"
+				sudo mount -o loop ubuntu-18.04.3-server-arm64.iso tmp/
+			fi
+			
+			;;
+		"0")
+			BuildImage2
+			;;
+	esac
+
+	Note "Unsquashing CD Filesystem"
+	sudo unsquashfs -d rootfs/ tmp/install/filesystem.squashfs
+
+	Note "Making a couple of changes to the filesystem"
+	sudo sed -i "s|root:x:0:0:root:/root:/bin/bash|root::0:0:root:/root:/bin/bash|" rootfs/etc/passwd
+	Note "Enabling the USB serial port"
+	sudo echo "ttyMV0" >> rootfs/etc/securetty
+
+	Note "Transferring the kernel into the image"
+	sudo cp "$HOMEPATH/kernel/4.4.$KERNELDOT/arch/arm64/boot/Image" rootfs/boot/
+	sudo cp "$HOMEPATH/kernel/4.4.$KERNELDOT/arch/arm64/boot/dts/marvell/armada-3720-community.dtb" rootfs/boot/
+
+	Note "Downloading ChameleonGeek initial EspressoBin configuration script"
+	wget "https://raw.githubusercontent.com/ChameleonGeek/ebin-dc/master/preconfig.sh"
+	chmod +x preconfig.sh
+	sudo mv preconfig.sh rootfs/root/preconfig.sh
+
+	Note "Creating Image File"
+	sudo tar -cjvf rootfs.tar.bz2 -C rootfs/ .
+	sudo mv rootfs.tar.bz2 "$HOMEPATH/"
+	OSBUILT=1
 }
 
 BuildImage(){
@@ -309,8 +390,8 @@ BuildImage(){
 }
 
 QueryImage(){
-	if [ "$(YesNo 'Build Image?', 'Do you want to build the Ubuntu 16.04LTS Image?')" == "1" ]; then
-		BuildImage
+	if [ "$(YesNo 'Build Image?', 'Do you want to build an Ubuntu Image?')" == "1" ]; then
+		BuildImage2
 	else
 		return 0
 	fi
