@@ -179,9 +179,9 @@ KernelConfigBaseline(){
 # TODO:: Ask the user at the beginning of script if this is desired, or if defaults are ok
 KernelCheckMenuConfig(){
 	# SPAWNS THE MENUCONFIG DIALOG IF THE USER WISHES
-	if [ "$(YesNo 'Customize Kernel?', 'Do you want to customize the kernel?')" == "1" ]; then
-		make menuconfig
-	fi
+	#if [ "$(YesNo 'Customize Kernel?', 'Do you want to customize the kernel?')" == "1" ]; then
+	#	make menuconfig
+	#fi
 	# make menuconfig
 	return 0
 }
