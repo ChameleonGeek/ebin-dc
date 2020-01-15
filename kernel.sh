@@ -19,19 +19,9 @@
 #
 # ==============================================================================
 # ==============================================================================
-cd ~
-HOMEPATH="$PWD"                         # Manages the home directory for the user for flexible file management
-KERNELBUILT=0                           # Flag identifying if the kernel has been built
-KERNELDOT=52                            # Holds the selected kernel version
-KERNELEMAIL='me@gmail.com'              # User email needed by Git in order to compile the kernel
-KERNELUSERNAME='espressobin developer'  # User name needed by Git in order to compile the kernel
-OSBUILT=0                               # Flag identifying if the Ubuntu OS Image has been built with kernel
-OSVERSION=0                             # Holds the selected OS Version
-REMDIRPATH=""                           # Removable drive path for installing onto SD card
-SETACL=1                                # Specifies whether ACLs should be nabled in the kernel
 
 # ======================================
-#               VARIABLES
+#                              VARIABLES
 # ======================================
 # COLORS FOR CLEARER NOTIFICATIONS
 BLU='\033[1;34m'
@@ -40,27 +30,34 @@ NC='\033[0m' # No Color
 RED='\033[1;31m'
 YEL='\033[1;33m'
 
+# USER SELECTED OPTIONS
+ARCHIVEKERNEL=0                         # Flag identifying if the user wants to save the kernel for later use
+ARCHIVEKERNELNAME=""                    # Holds the folder name the kernel should be archived in (if ARCHIVEKERNEL=1)
+ARCHIVEOS=0                             # Flag identifying if the user wants to archive the OS image for later
+ARCHIVEOSNAME=""                        # Holds the folder name the OS should be archived in (if ARCHIVEOS=1)
+BUILDKERNEL=0				# Flag identifying if the kernel should be built
+BUILDOS=0                               # Flag identifying if an OS should be built
+KERNELBUILT=0                           # Flag identifying if the kernel has been built
+KERNELDOT=52                            # Holds the selected kernel version
+KERNELREUSE=0                           # Holds the kernel version to reuse in card image
+KERNELEMAIL='me@gmail.com'              # User email needed by Git in order to compile the kernel
+KERNELUSERNAME='espressobin developer'  # User name needed by Git in order to compile the kernel
+OSBUILT=0                               # Flag identifying if the Ubuntu OS Image has been built with kernel
+OSVERSION=0                             # Holds the selected OS Version
+REMDIRPATH=""                           # Removable drive path for installing onto SD card
+SETACL=1                                # Specifies whether ACLs should be nabled in the kernel
+ORIG_PARTS=()                           # A list of all partitions available on system without the SD card attached
+WDRIV_PARTS=()                          # A list of all partitions available on system WITH the SD card attached
+IMAGE_DRIVE=0				# Flags if the user intends to image a drive
+AVAIL_DRIVES=()                         # A list of attached drives (diff ORIG_PARTS, WDRIV_PARTS)
+BOOT_PARTITION=""			# Partition used to boot this PC
+DRIVE_TO_IMAGE=""                       # Partition to image with OS
 # ======================================
-#   BASIC USER INTERACTION FUNCTIONS
+#                      USER INTERACTIONS
 # ======================================
-Alert(){
-	echo -e "${RED}$1${NC}"
-}
+Alert(){	echo -e "${RED}$1${NC}";	}
 
-Note(){
-	echo -e "${GRN}$1${NC}"
-}
-
-Splash(){ # Alerts user of major steps in the configuration process
-	# Usage: Splash <display text>
-	title="$1"
-	clear
-	echo -e "${GRN}=============================================================================="
-	echo "=============================================================================="
-	printf "%*s\n" $(((${#title}+80)/2)) "$title"
-	echo "=============================================================================="
-	echo -e "==============================================================================${NC}"
-}
+Note(){	echo -e "${GRN}$1${NC}";	}
 
 Query(){ # Uses whiptail to ask user for input
     # Usage: Query <default value> <whiptail title> <prompt>
@@ -73,28 +70,251 @@ Query(){ # Uses whiptail to ask user for input
 	fi
 }
 
-RadioKernelVersions(){
-	TITLE="Kernel Version"
-	PROMPT="Select the kernel version to compile"
-	retval="$(whiptail --title "$TITLE" --radiolist "$PROMPT" 20 78 4 \
-		"8" "Version 4.4.8" OFF \
-		"52" "Version 4.4.52" ON 3>&1 1>&2 2>&3)"
-	KERNELDOT="$retval"
+BuildKernel(){
+	echo "Building Kernel"
+	if [ "$BUILDKERNEL" == "0" ]; then Note "User opted to not build a kernel"; return 0; fi
+	MakeDirNE /espressobin/kernel 1
+
+	Note "Personalizing Git"
+	git config --global user.name "$KERNELUSERNAME"
+	git config --global user.email "$KERNELEMAIL"
+
+	Note "Checking Out Kernel Source"
+	kdir="/espressobin/kernel/4.4.$KERNELDOT"
+	DeletePrevDir "$kdir"
+	MakeDirNE "$kdir" 1
+	ln -s "$kdir" /espressobin/kbuild
+#	cd /espressobin/kbuild
+
+	# CLONES KERNEL REPOSITORY
+	# REPO IS THE SAME FOR 4.4.8 AND 4.4.52
+	Note "Cloning linux-marvell repository"
+	git clone https://github.com/MarvellEmbeddedProcessors/linux-marvell .
+
+	Note "Checking out repository"
+	if [ "$KERNELDOT" == "8" ]; then
+		git checkout linux-4.4.8-armada-17.02-espressobin
+	fi
+
+	if [ "$KERNELDOT" == "52" ]; then
+		git checkout 6adee55d3e07e3cc99ec6248719aac042e58c5e6 -b espressobin-v7
+		Note "Downloading kernel patches"
+		wget -O ebin_v7_kernel_patches.zip http://wiki.espressobin.net/tiki-download_file.php?fileId=210
+		Note "Unzipping patches"
+		unzip ebin_v7_kernel_patches.zip
+		Note "Applying patches"
+		git am *.patch
+	fi
+
+	Note "Setting kernel compiler variables"
+	export ARCH=arm64
+	export CROSS_COMPILE=aarch64-linux-gnu-
+
+	Note "Creating baseline configuration file"
+  	make mvebu_v8_lsp_defconfig
+
+	if [ "$SETACL" == 1 ]; then
+		Note "Enabling ACLs in the config file"
+  		sudo sed -i "s|# CONFIG_EXT3_FS_POSIX_ACL is not set|CONFIG_EXT3_FS_POSIX_ACL=y|" .config
+  		sudo sed -i "s|# CONFIG_EXT4_FS_POSIX_ACL is not set|CONFIG_EXT4_FS_POSIX_ACL=y|" .config
+	fi
+
+	# FUTURE IMPROVEMENT:  Handle spawning kernel config menu
+	# KernelCheckMenuConfig
+
+	Note "Updating PATH to complete building the kernel"
+	export PATH=$PATH:/espressobin/toolchain/gcc-linaro-5.2-2015.11-2-x86_64_aarch64-linux-gnu/bin
+
+	Note "Compiling the kernel"
+	make -j4
+
+	if [ "$ARCHIVEKERNEL" == "1" ]; then
+		Note "Archiving kernel Image and dtb files"
+		cp "/espressobin/kbuild/arch/arm64/boot/Image" /espressobin/karchive/
+		cp "/espressobin/kbuild/arch/arm64/boot/dts/marvell/armada-3720-community.dtb" /espressobin/karchive/
+	fi
+	KERNELBUILT=1
 }
 
-RadioOSVersions(){
-	TITLE="Ubuntu Version"
-	PROMPT="Select the Ubuntu version to build"
-#		"14" "Version 14.04.05 LTS" OFF \
-	retval="$(whiptail --title "$TITLE" --radiolist "$PROMPT" 20 78 4 \
-		"16" "Version 16.04.4 (Xenial) LTS" ON \
-		"18" "Version 18.04.3 (Bionic) LTS" OFF 3>&1 1>&2 2>&3)"
-	OSVERSION="$retval"
+BuildOS(){
+	Note "Building OS"
+	if [ "$OSVERSION" == "0" ]; then Note "User opted to not build an operating system"; return 0; fi
+	MakeDirNE /espressobin/os_image 1
+
+	if [ -e rootfs.tar.bz2 ]; then rm rootfs.tar.bz2; fi
+
+	Note "Downloading OS ISO Image"
+	case "$OSVERSION" in
+		14)
+			;;
+		16)
+			img="ubuntu-16.04.4-server-arm64.iso"
+			imgurl="http://cdimage.ubuntu.com/releases/16.04.5/release/ubuntu-16.04.4-server-arm64.iso"
+			;;
+		18)
+			img="ubuntu-18.04.3-server-arm64.iso"
+			imgurl="http://cdimage.ubuntu.com/releases/18.04.3/release/ubuntu-18.04.3-server-arm64.iso"
+			;;
+	esac
+
+	if ! [ -e "$img" ]; then
+		Note "Downloading CD Image"
+		wget "$imgurl"
+	fi
+
+	Note "Mounting CD Image"
+	MakeDirNE tmp
+	mount -o loop "$img" tmp/
+
+	Note "Unsquashing CD Filesystem"
+	unsquashfs -d rootfs/ tmp/install/filesystem.squashfs
+
+	Note "Transferring the kernel into the image"
+	cp "/espressobin/kbuild/arch/arm64/boot/Image" rootfs/boot/
+	cp "/espressobin/kbuild/arch/arm64/boot/dts/marvell/armada-3720-community.dtb" rootfs/boot/
+
+	Note "Making a couple of changes to the filesystem"
+	sed -i "s|root:x:0:0:root:/root:/bin/bash|root::0:0:root:/root:/bin/bash|" rootfs/etc/passwd
+	Note "Enabling the USB serial port"
+	echo "ttyMV0" >> rootfs/etc/securetty
+
+	Note "Adding ChameleonGeek preconfig script to root's home directory on image"
+	if [ -e preconfig.sh ]; then rm preconfig.sh; fi
+	wget "https://raw.githubusercontent.com/ChameleonGeek/ebin-dc/master/preconfig.sh"
+	chmod +x preconfig.sh
+	mv preconfig.sh rootfs/root/
+
+	Note "Creating Image File"
+	tar -cjvf rootfs.tar.bz2 -C rootfs/ .
+
+	if [ "$ARCHIVEOS" == "1" ]; then
+		Note "Archiving OS Image (rootfs.tar.bz2)"
+		cp rootfs.tar.bz2 /espressobin/oarchive/
+	fi
+
+	umount tmp/
+	OSBUILT=1
 }
 
-WhipNotify(){ # Uses whiptail to notify the user of important information.  Waits for the user to OK
-	# Usage: WhipNotify <title> <message>
-	whiptail --title "$1" --msgbox "$2" 8 78
+CheckDriveSpace(){
+	BOOT_PARTITION="$(df /boot | grep /dev)"
+	BOOT_SPACE=${BOOT_PARTITION:33:10}
+	BOOT_SPACE="$(echo -e "$BOOT_SPACE" | tr -d '[:space:]')"
+	BOOT_PARTITION="${BOOT_PARTITION:5:4}"
+	echo "Boot Space:  ($BOOT_SPACE)"
+	if [ 24000000 -gt $BOOT_SPACE ]; then
+		Alert "There is not enough space on the boot drive to proceed."
+		exit
+	fi
+}
+
+MakeDirNE(){ # <path> <cd to>
+	if ! [ -d "$1" ]; then mkdir -p "$1"; Note "Created Directory $1"; fi
+	if [ "$2" == "1" ]; then cd "$1"; fi
+}
+
+UserIDDestDrive(){
+	# Asks the user to select the drive to image.  
+	# If none is selected, it asks again
+	# If canceled, the script ends
+	if [ "$IMAGE_DRIVE" == "0" ]; then return 0; fi
+
+	DRIVEOPTS=()
+	PART_COUNT=0
+	for drive in "${AVAIL_DRIVES[@]}"; do
+		#echo "SELECTING DRIVE"
+		if [ "${drive:3:3}" != "${BOOT_PARTITION:0:3}" ]; then
+			#echo "$drive"
+			PART_COUNT+=1
+			DRIVEOPTS+=("${drive:2:4}" "${drive:0:60}" "OFF")
+		fi
+	done
+
+	if [ "$PART_COUNT" == "0" ]; then
+		Alert "No valid drives detected.  Please try again."
+		exit
+	fi
+
+	DRIVE_TO_IMAGE="$(whiptail --title "Image Partition" --radiolist "Select the drive to image" 10 80 "${#DRIVEOPTS[@]}" \
+		"${DRIVEOPTS[@]}" 3>&1 1>&2 2>&3)"
+
+	if [ "$?" = 1 ]; then
+		clear
+		Alert "User Canceled."
+		exit
+	fi
+
+	if [ "$DRIVE_TO_IMAGE" == "" ]; then UserIDDestDrive; fi
+	Note "You have selected $DRIVE_TO_IMAGE"
+}
+
+UserQuestions(){
+	# Asks the user the questions needed to determine what tasks need to be performed
+
+	if [ "$(YesNo "Image Drive?" "Do you want to extract an image to a drive (SD card)?")" == "1" ]; then
+		IMAGE_DRIVE=1
+		whiptail --title "Disconnect Drive" --msgbox "If the drive you want imaged is connected, please disconnect it now. Press Enter to continue." 8 78
+		ReadAttachedPartitions 0
+	fi
+
+	# Connect the drive so that it can be detected
+	if [ "$IMAGE_DRIVE" == "1" ]; then
+		whiptail --title "Connect Drive" --msgbox "Connect the drive you want to image now. Press Enter to continue." 8 78
+	fi
+
+	# Create kernel?
+	if [ "$(YesNo "Create Kernel?" "Do you want to build a kernel?")" == "1" ]; then
+		BUILDKERNEL=1
+		# Kernel Version
+		KERNELDOT="$(whiptail --title "Kernel Version" --radiolist "Select the kernel version to build" 10 80 2 \
+		"8" "Version 4.4.8" OFF "52" "Version 4.4.52" ON 3>&1 1>&2 2>&3)"
+
+		# Git personalization
+		KERNELEMAIL="$(Query "" "Email Address" "Git requires your email address in order to compile the kernel")"
+		KERNELUSERNAME="$(Query "" "Your Name" "Git requires your name to compile the kernel")"
+
+		var=`(date +%F_%H-%M-%S)` # Capture current timestamp
+		# Archive Kernel?
+		if [ "$(YesNo "Archive Kernel?" "Do you want to save the kernel files to be re-used later?")" == "1" ]; then
+			Note "Kernel Archive Selected"
+			ARCHIVEKERNEL=1
+			ARCHIVEKERNELNAME="$(Query "4.4.$KERNELDOT $var" "Kernel Name" "Enter a brief description of this kernel")"
+			MakeDirNE "/espressobin/build_archive/kernel/$ARCHIVEKERNELNAME"
+			ln -s "/espressobin/build_archive/kernel/$ARCHIVEKERNELNAME" /espressobin/karchive
+			touch "/espressobin/build_archive/kernel/$ARCHIVEKERNELNAME/$var"
+			
+		else
+			Note "Kernel Archive NOT Selected"
+		fi
+	fi
+
+	# Create OS?
+	if [ "$(YesNo "Create OS?" "Do you want to build an OS image?")" == "1" ]; then
+		BUILDOS=1
+		# OS Version
+		OSVERSION="$(whiptail --title "OS Version" --radiolist "Select the OS version to build" 10 80 3 \
+			"14" "Ubuntu 14.04.5 (Trusty)" OFF "16" "Ubuntu 16.04.4 (Xenial)" ON \
+			"18" "Ubuntu 18.04.3 (Bionic)" OFF 3>&1 1>&2 2>&3)"
+
+		# Archive OS?
+		if [ "$(YesNo "Archive OS?" "Do you want to save the OS to be re-used later?")" == "1" ]; then
+			ARCHIVEOS=1
+			ARCHIVEOSNAME="$(Query "Ubuntu $OSVERSION $var" "OS Name" "Enter a brief description of this OS ")"
+			MakeDirNE "/espressobin/build_archive/os/$ARCHIVEOSNAME"
+			ln -s "/espressobin/build_archive/os/$ARCHIVEOSNAME" /espressobin/oarchive
+			touch "/espressobin/build_archive/os/$ARCHIVEOSNAME/$var"
+		fi
+	fi
+
+	# Read partitons second time to identify new drive attached
+	if [ "$IMAGE_DRIVE" == "1" ]; then ReadAttachedPartitions 1; fi
+
+	# Compare first drive inventory to last drive inventory
+	IdentifyAvailableDrives
+
+	# Choose partition to write image to
+	UserIDDestDrive
+	#echo "$DRIVE_TO_IMAGE"
 }
 
 YesNo(){ # Uses whiptail to ask yes/no questions
@@ -106,358 +326,117 @@ YesNo(){ # Uses whiptail to ask yes/no questions
     fi
 }
 
-varUC(){
-	echo "$1" | tr '[a-z]' '[A-Z]'
+DeletePrevDir(){ # <dir path>
+	# Removes directories if they already exist
+	if [ -d "$1" ]; then rm -rf "$1"; fi
 }
 
-varLC(){
-	echo "$1" | tr '[A-Z]' '[a-z]'
-}
-
-KernelUserInfo(){
-	KERNELUSERNAME="$(Query "" "Git User Name" "Git needs your name to compile the kernel")"
-	KERNELEMAIL="$(Query "" "Git Email Address" "Git needs your email address to compile the kernel")"
-}
-
-KernelToolchain(){
-	cd "$HOMEPATH"
-  	if [ -d toolchain ]; then
-    		sudo rm -r toolchain
-  	fi
-  	# Download the toolchain to compile the kernel
-  	Note "Downloading toolchain to compile the revised kernel"
-  	# Thanks to http://wiki.espressobin.net/tiki-index.php?page=Build+From+Source+-+Toolchain
-  	mkdir -p toolchain
-  	cd toolchain
-  	Note "Downloading Toolchain"
-  	wget https://releases.linaro.org/components/toolchain/binaries/5.2-2015.11-2/aarch64-linux-gnu/gcc-linaro-5.2-2015.11-2-x86_64_aarch64-linux-gnu.tar.xz
-  	Note "Extracting Toolchain"
-  	tar -xvf gcc-linaro-5.2-2015.11-2-x86_64_aarch64-linux-gnu.tar.xz
-
-  	# Ensure the proper tools are installed
-  	# Thanks to https://linux.com/tutorials/how-compile-linux-kernel-0
-  	Note "Installing necessary software to build the kernel"
-  	sudo apt-get install git fakeroot build-essential ncurses-dev xz-utils libssl-dev bc flex libelf-dev bison -y
-}
-
-KernelDirMake(){
-	# DELETES PREVIOUS KERNEL DIRECTORIES IF THEY EXIST AND CREATES COMPILE DIRECTORY
-	# USAGE <kernel version>
-	cd "$HOMEPATH"
-	if [ -d kernel ]; then
-		rm -r kernel
-	fi
-	mkdir -p "kernel/$1"
-	cd "kernel/$1/"
-}
-
-KernelClone(){
-	# CLONES KERNEL REPOSITORY
-	# REPO IS THE SAME FOR 4.4.8 AND 4.4.52
-	Note "Cloning linux-marvell repository"
-	git clone https://github.com/MarvellEmbeddedProcessors/linux-marvell .
-}
-
-KernelCompVars(){
-	Note "Setting compiler variables"
-	export ARCH=arm64
-	export CROSS_COMPILE=aarch64-linux-gnu-
-}
-
-KernelConfigBaseline(){
-	# CREATES THE DEFAULT CONFIG FILE, AND ENABLES ACLS IF APPROPRIATE
-	Note "Creating baseline configuration file"
-  	make mvebu_v8_lsp_defconfig
-
-	if [ "$SETACL" == 1 ]; then
-		Note "Enabling ACLs in the config file"
-  		sudo sed -i "s|# CONFIG_EXT3_FS_POSIX_ACL is not set|CONFIG_EXT3_FS_POSIX_ACL=y|" .config
-  		sudo sed -i "s|# CONFIG_EXT4_FS_POSIX_ACL is not set|CONFIG_EXT4_FS_POSIX_ACL=y|" .config
-	fi
-}
-
-# TODO:: Ask the user at the beginning of script if this is desired, or if defaults are ok
-KernelCheckMenuConfig(){
-	# SPAWNS THE MENUCONFIG DIALOG IF THE USER WISHES
-	#if [ "$(YesNo 'Customize Kernel?', 'Do you want to customize the kernel?')" == "1" ]; then
-	#	make menuconfig
-	#fi
-	# make menuconfig
-	return 0
-}
-
-KernelSetPath(){
-	Note "Updating PATH to complete building the kernel"
-	export PATH=$PATH:$HOMEPATH/toolchain/gcc-linaro-5.2-2015.11-2-x86_64_aarch64-linux-gnu/bin
-}
-
-KernelCompile(){
-	Note "Compiling the kernel"
-	make -j4
-}
-
-KernelPatchIdentify(){
-	git config --global user.name "$KERNELUSERNAME"
-	git config --global user.email "$KERNELEMAIL"
-}
-
-OSImagePathQuery(){
-	# Read the list of attached drives into an array
-	readarray -t DEVICES <<< "$(lsblk | grep ─sd)"
-
-	TITLE="'Select Drive'"
-	PROMPT="'Select the drive the EspressoBin boot image should be installed on'"
-	whiptail_args=(--title "$TITLE" --radiolist "$PROMPT" 10 80 "${#DEVICES[@]}")
-
-	for device in "${DEVICES[@]}"; do
-		i+=1
-		drvid="${device:2:4}"
-		#echo "DRIVE $i: $drvid"
-		whiptail_args+=( "$drvid" "'${device:0:60}'" "OFF")
+IdentifyAvailableDrives(){
+	# Compares ORIG_PARTS to WDRIV_PARTS to identify drives added during operation
+	AVAIL_DRIVES=()
+	for i in "${WDRIV_PARTS[@]}"; do
+	    skip=
+	    for j in "${ORIG_PARTS[@]}"; do
+	        [[ $i == $j ]] && { skip=1; break; }
+	    done
+	    [[ -n $skip ]] || AVAIL_DRIVES+=("$i")
 	done
 
-  # Query which partition the image should be installed on and save to variable
-	REMDIRPATH="$(whiptail "${whiptail_args[@]}" 3>&1 1>&2 2>&3)" 
+	#for i in "${AVAIL_DRIVES[@]}"; do
+	#	echo "$i"
+	#done
 }
 
-
-BuildKernel52(){
-	# BUILDS KERNEL 4.4.52
-	WhipNotify "Kernel Building and Configuration Script" "Do you want to build the 4.4.52 Kernel?\n\nThis process may take as long as an hour to complete."
-	KernelUserInfo
-	KernelToolchain
-
-	KernelDirMake '4.4.52'
-	KernelPatchIdentify
-	KernelClone
-	Note "Checking out repository"
-	git checkout 6adee55d3e07e3cc99ec6248719aac042e58c5e6 -b espressobin-v7
-
-	Note "Downloading kernel patches"
-	wget -O ebin_v7_kernel_patches.zip http://wiki.espressobin.net/tiki-download_file.php?fileId=210
-	Note "Unzipping patches"
-	unzip ebin_v7_kernel_patches.zip
-	Note "Applying patches"
-	git am *.patch
-
-	KernelCompVars
-	KernelConfigBaseline
-	KernelCheckMenuConfig
-	KernelSetPath
-	KernelCompile
-	KERNELBUILT=1
-}
-
-BuildKernel8(){
-	# BUILDS KERNEL VERSION 4.4.4
-	WhipNotify "Kernel Building and Configuration Script" "Do you want to build the 4.4.8 Kernel?\n\nThis process may take as long as an hour to complete."
-	KernelUserInfo
-	KernelToolchain
-
-	KernelDirMake '4.4.8'
-	KernelPatchIdentify
-	KernelClone
-
-	Note "Checking out repository"
-	git checkout linux-4.4.8-armada-17.02-espressobin
-
-	KernelCompVars
-	KernelConfigBaseline
-	KernelCheckMenuConfig
-	KernelSetPath
-	KernelCompile
-	KERNELBUILT=1
-}
-
-QueryKernel(){
-	if [ "$(YesNo 'Build Kernel?', 'Do you want to build the kernel?')" == "0" ]; then
-		return 0
-	fi
-
-	if [ "$(YesNo 'Enable ACLs?', 'This script was created to enable ACLs in the kernel.  Do you want to keep this setting?')" == "0" ]; then
-		SETACL=0
-	fi
+ImageRemDrive(){
+	if [ "$IMAGE_DRIVE" == "0" ]; then return 0; fi
+	message="The process is nearly complete.  The script will now image /dev/$DRIVE_TO_IMAGE with the OS.  You will have to enter \"y\" after this message to approve imaging."
+	whiptail --title "Ready to Image Drive" --msgbox "$message" 16 78
+	cd /espressobin
 	
-	RadioKernelVersions
-	case "$KERNELDOT" in
-		"52")
-			BuildKernel52
-			;;
-		"8")
-			BuildKernel8
-			;;
-	esac
-}
-
-BuildImage2(){ # <os version>
-	RadioOSVersions
-	DriveNotice
-	cd ~
-	if [ -d ubuntu_image ]; then
-		sudo rm -r ubuntu_image
-	fi
-	
-	mkdir ubuntu_image
-	cd ubuntu_image
-	if [ -d tmp ]; then
-		sudo rm -r tmp
-	fi
-	mkdir tmp
-
-	case "$OSVERSION" in
-		"14")
-			# TODO::  Work through 14x process
-			return 0
-			;;
-		"16")
-			if ! [ -e "ubuntu-16.04.4-server-arm64.iso" ]; then
-				Note "Downloading CD Image"
-				wget http://cdimage.ubuntu.com/releases/16.04.5/release/ubuntu-16.04.4-server-arm64.iso
-				Note "Mounting CD Image"
-				sudo mount -o loop ubuntu-16.04.4-server-arm64.iso tmp/
-			fi
-			;;
-		"18")
-			if ! [ -e "/ubuntu-18.04.3-server-arm64.iso" ]; then
-				Note "Downloading CD Image"
-				wget http://cdimage.ubuntu.com/releases/18.04.3/release/ubuntu-18.04.3-server-arm64.iso
-				Note "Mounting CD Image"
-				sudo mount -o loop ubuntu-18.04.3-server-arm64.iso tmp/
-			fi
-			
-			;;
-		"0")
-			BuildImage2
-			;;
-	esac
-
-	Note "Unsquashing CD Filesystem"
-	sudo unsquashfs -d rootfs/ tmp/install/filesystem.squashfs
-
-	Note "Making a couple of changes to the filesystem"
-	sudo sed -i "s|root:x:0:0:root:/root:/bin/bash|root::0:0:root:/root:/bin/bash|" rootfs/etc/passwd
-	Note "Enabling the USB serial port"
-	sudo echo "ttyMV0" >> rootfs/etc/securetty
-
-	Note "Transferring the kernel into the image"
-	sudo cp "$HOMEPATH/kernel/4.4.$KERNELDOT/arch/arm64/boot/Image" rootfs/boot/
-	sudo cp "$HOMEPATH/kernel/4.4.$KERNELDOT/arch/arm64/boot/dts/marvell/armada-3720-community.dtb" rootfs/boot/
-
-	Note "Downloading ChameleonGeek initial EspressoBin configuration script"
-	wget "https://raw.githubusercontent.com/ChameleonGeek/ebin-dc/master/preconfig.sh"
-	chmod +x preconfig.sh
-	sudo mv preconfig.sh rootfs/root/preconfig.sh
-
-	Note "Creating Image File"
-	sudo tar -cjvf rootfs.tar.bz2 -C rootfs/ .
-	sudo mv rootfs.tar.bz2 "$HOMEPATH/"
-	OSBUILT=1
-}
-
-BuildImage(){
-	cd ~
-	if [ -d ubuntu_16.04 ]; then
-		sudo rm -r ubuntu_16.04
-	fi
-	mkdir -p ubuntu_16.04
-	cd ubuntu_16.04
-	Note "Downloading CD Image"
-	wget http://cdimage.ubuntu.com/releases/16.04.5/release/ubuntu-16.04.4-server-arm64.iso
-	mkdir tmp
-	Note "Mounting CD Image"
-	sudo mount -o loop ubuntu-16.04.4-server-arm64.iso tmp/
-
-	Note "Unsquashing CD Filesystem"
-	sudo unsquashfs -d rootfs/ tmp/install/filesystem.squashfs
-
-	Note "Making a couple of changes to the filesystem"
-	sudo sed -i "s|root:x:0:0:root:/root:/bin/bash|root::0:0:root:/root:/bin/bash|" rootfs/etc/passwd
-	Note "Enabling the USB serial port"
-	sudo echo "ttyMV0" >> rootfs/etc/securetty
-	#Note "Updating repositories to include Universe sources"
-	#sed -i 's| xenial main| xenial main universe|' rootfs/etc/apt/sources.list
-	#sed -i 's| xenial-security main| xenial-security main universe|' rootfs/etc/apt/sources.list
-	#sed -i 's| xenial-updates main| xenial-updates main universe|' rootfs/etc/apt/sources.list
-	#sed -i 's| universe universe| universe|' rootfs/etc/apt/sources.list
-
-	Note "Transferring the kernel into the image"
-	sudo cp "$HOMEPATH/kernel/4.4.$KERNELDOT/arch/arm64/boot/Image" rootfs/boot/
-	sudo cp "$HOMEPATH/kernel/4.4.$KERNELDOT/arch/arm64/boot/dts/marvell/armada-3720-community.dtb" rootfs/boot/
-
-	Note "Downloading ChameleonGeek initial EspressoBin configuration script"
-	wget "https://raw.githubusercontent.com/ChameleonGeek/ebin-dc/master/ebin-config.sh"
-	chmod +x ebin-config.sh
-	sudo mv ebin-config.sh rootfs/root/ebin-config.sh
-
-	Note "Creating Image File"
-	sudo tar -cjvf rootfs.tar.bz2 -C rootfs/ .
-	sudo mv rootfs.tar.bz2 "$HOMEPATH/"
-	OSBUILT=1
-}
-
-QueryImage(){
-	if [ "$(YesNo 'Build Image?', 'Do you want to build an Ubuntu Image?')" == "1" ]; then
-		BuildImage2
-	else
-		return 0
-	fi
-}
-
-QueryDriveMove(){
-	if [ "$OSBUILT" == "0" ]; then
-		return 0
-	fi
-	if [ "$(YesNo 'Image Drive?' 'Do you want to load the image onto a removable drive?')" == "1" ]; then
-		DriveImage
-	else
-		return 0
-	fi
-}
-
-
-DriveImage(){
-	OSImagePathQuery
-	# REMDIRPATH
-	REMDIRPATH="/dev/$REMDIRPATH"
-	if [ "$(YesNo "Image Drive?" "You selected $REMDIRPATH as the partition to install the OS image.  This will reformat the drive.  Do you want to continue?")" == "0" ]; then
-		return 0
-	fi
-
-	cd "$HOMEPATH"
-	DEVICEPATH="$REMDIRPATH"
-
 	Note "The drive must be unmounted"
-	sudo umount "${DEVICEPATH}"
+	sudo umount "/dev/${DRIVE_TO_IMAGE}"
 
 	Note "Formatting the drive"
-	sudo mkfs -t ext4 "${DEVICEPATH}"
+	sudo mkfs -t ext4 "/dev/${DRIVE_TO_IMAGE}"
 
+	MakeDirNE /espressobin/cardtemp
 	Note "Mounting the newly formatted drive"
-	sudo mkdir /ebincard
-	sudo mount "${DEVICEPATH}" /ebincard
-	cd /ebincard
-
+	mount "/dev/${DRIVE_TO_IMAGE}" /espressobin/cardtemp
+	cd /espressobin/cardtemp
+	
 	Note "Extracting the OS onto the drive"
-	sudo tar -xvf "$HOMEPATH/rootfs.tar.bz2"
+	sudo tar -xvf "/espressobin/os_image/rootfs.tar.bz2"
 
-	cd "$HOMEPATH"
-	sudo umount /ebincard
-	sudo rm -rf /ebincard
-
-	Note "Drive has been prepped and is safe to disconnect."
+	cd /espressobin
+	sudo umount /espressobin/cardtemp
+	DeletePrevDir /espressobin/cardtemp
+	DeletePrevDir /espressobin/os_image/tmp
 }
 
-DriveNotice(){
-	Alert "Now is a good time to identify the drive to image."
-	Note "Open a new terminal window"
-	Note "Run the command \"lsblk\" twice, once with the drive to image NOT installed, and then with the drive installed."
-	Note "Identify the change in the output of the command.  The change will be the proper drive."
+KillSymlinks(){
+	if [ -d /espressobin/karchive ]; then unlink /espressobin/karchive; fi
+	if [ -d /espressobin/kbuild ]; then unlink /espressobin/kbuild; fi
+	if [ -d /espressobin/oarchive ]; then unlink /espressobin/oarchive; fi
+	if [ -d /espressobin/obuild ]; then unlink /espressobin/obuild; fi
 }
 
-ProcessManage(){
-	QueryKernel
-	QueryImage
-	QueryDriveMove
+ReadAttachedPartitions(){ # <drive not attached = 0, drive attached = 1>
+	# Loads all attached drive partitions
+	if [ "$1" == "0" ]; then
+		readarray -t ORIG_PARTS <<< "$(lsblk | grep ─sd)"
+	else
+		readarray -t WDRIV_PARTS <<< "$(lsblk | grep ─sd)"
+	fi
+	Note "Drive Inventory Complete."
 }
 
-ProcessManage
+Toolchain(){
+	MakeDirNE /espressobin/toolchain 1
+
+	if ! [ -e "gcc-linaro-5.2-2015.11-2-x86_64_aarch64-linux-gnu.tar.xz" ]; then
+		Note "Downloading Kernel Building Toolchain"
+		wget https://releases.linaro.org/components/toolchain/binaries/5.2-2015.11-2/aarch64-linux-gnu/gcc-linaro-5.2-2015.11-2-x86_64_aarch64-linux-gnu.tar.xz
+	else
+		Note "Kernel Downloading Toolchain already downloaded"
+	fi
+
+	DeletePrevDir "/espressobin/toolchain/gcc-linaro-5.2-2015.11-2-x86_64_aarch64-linux-gnu"
+
+	Note "Extracting Toolchain"
+  	tar -xvf gcc-linaro-5.2-2015.11-2-x86_64_aarch64-linux-gnu.tar.xz
+
+  	Note "Installing necessary software to build the kernel"
+  	sudo apt-get install git fakeroot build-essential ncurses-dev xz-utils libssl-dev bc flex libelf-dev bison -y
+
+	cd /espressobin
+}
+
+# ======================================
+#                    ROUTING AND CONTROL
+# ======================================
+Initialize(){
+	# Routes the script process based upon selections made by the user
+	CheckDriveSpace # Verifies that the boot drive has sufficient space
+	MakeDirNE /espressobin 1        # Creates the base build directory
+
+	KillSymlinks                    # Delete symlinks created by this process if they exist
+	UserQuestions                   # Ask the user questions to control the process
+
+	whiptail --title "Begin" --msgbox "The process will now begin.  It can take up to an hour depending on network and PC capabilities.  This process will not be interupted until it reaches the end and the removable drive will be imaged." 12 78
+	if [ "$?" = 1 ]; then
+		clear
+		Alert "User Canceled."
+		exit
+	fi
+
+	Toolchain                       # Download the kernel building toolchain if not already present
+	BuildKernel                     # Build the kernel if selected
+	BuildOS                         # Build Operating System if selected
+	ImageRemDrive                   # Copies the OS filesystem to the removable drive
+	KillSymlinks                    # Delete symlinks created by this process if they exist
+
+	message="The process is complete."
+	whiptail --title "Process Complete" --msgbox "$message" 16 78
+}
+
+Initialize
