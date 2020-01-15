@@ -56,12 +56,12 @@ PreConfig(){
 	Note "Installing wget so that main configuration script can be downloaded"
 	apt-get install wget -y
 
-	if [-e sysconfig.sh ]; then 
+	if [ -e sysconfig.sh ]; then 
 		rm sysconfig.sh
 	fi
 	
 	Note "Downloading configuration script"
-	wget https://github.com/ChameleonGeek/ebin-dc/sysconfig.sh
+	wget https://github.com/ChameleonGeek/ebin-dc/raw/master/sysconfig.sh
 	chmod +x sysconfig.sh
 
 	Note "Running configuration script"
