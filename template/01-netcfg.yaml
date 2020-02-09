@@ -1,0 +1,10 @@
+    network:
+        version: 2
+        renderer: NetworkManager
+        ethernets:
+            lan1:
+                dhcp4: no
+                addresses: [@1@/@2@]
+                gateway4: @3@
+                nameservers:
+                    addresses: [8.8.4.4,8.8.8.8]
