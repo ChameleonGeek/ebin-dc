@@ -23,10 +23,12 @@ hostname espressobin
 echo -e "127.0.0.1\tespressobin.verdunn.lan espressobin" > /etc/hosts
 
 Note "Updating repositories"
-sed -i 's| bionic main| bionic main universe|' /etc/apt/sources.list
-sed -i 's| bionic-security main| bionic-security main universe|' /etc/apt/sources.list
-sed -i 's| bionic-updates main| bionic-updates main universe|' /etc/apt/sources.list
-sed -i 's| universe universe| universe|' /etc/apt/sources.list
+echo "deb http://ports.ubuntu.com/ubuntu-ports/ bionic main universe" > /etc/apt/sources.list
+echo "deb http://ports.ubuntu.com/ubuntu-ports/ bionic-security main universe" >> /etc/apt/sources.list
+echo "deb http://ports.ubuntu.com/ubuntu-ports/ bionic-updates main universe" >> /etc/apt/sources.list
+echo "deb-src http://ports.ubuntu.com/ubuntu-ports/ bionic main universe" >> /etc/apt/sources.list
+echo "deb-src http://ports.ubuntu.com/ubuntu-ports/ bionic-security main universe" >> /etc/apt/sources.list
+echo "deb-src http://ports.ubuntu.com/ubuntu-ports/ bionic-updates main universe" >> /etc/apt/sources.list
 
 Note "Updating Package Lists"
 apt-get update
