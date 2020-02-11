@@ -22,8 +22,10 @@ echo "deb http://ports.ubuntu.com/ubuntu-ports/ bionic-security main universe" >
 echo "deb http://ports.ubuntu.com/ubuntu-ports/ bionic-updates main universe" >> /etc/apt/sources.list
 
 Note "Setting up repo for Samba 4.11"
-echo "deb http://apt.van-belle.nl/debian bionic-samba411 main contrib non-free" | sudo tee -a /etc/apt/sources.list.d/van-belle.list
-wget -O - http://apt.van-belle.nl/louis-van-belle.gpg-key.asc | apt-key add -
+echo "deb http://apt.van-belle.nl/debian bionic-samba411 main contrib non-free" > /etc/apt/sources.list.d/van-belle.list
+wget -O - http://apt.van-belle.nl/louis-van-belle.gpg-key.asc
+apt-key add louis-van-belle.gpg-key.asc
+rm louis-van-belle.gpg-key.asc
 
 Note "Updating Package Lists"
 apt update -y
