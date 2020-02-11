@@ -37,6 +37,7 @@ wget http://apt.van-belle.nl/louis-van-belle.gpg-key.asc
 apt-key add louis-van-belle.gpg-key.asc
 rm louis-van-belle.gpg-key.asc
 apt update -y
+sleep 5             # System occasionally hangs if this is not performed
 
 Note "Checking Samba Installer Policy"
 apt-cache policy samba
