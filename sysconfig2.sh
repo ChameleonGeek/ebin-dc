@@ -21,12 +21,6 @@ echo "deb http://ports.ubuntu.com/ubuntu-ports/ bionic main universe" > /etc/apt
 echo "deb http://ports.ubuntu.com/ubuntu-ports/ bionic-security main universe" >> /etc/apt/sources.list
 echo "deb http://ports.ubuntu.com/ubuntu-ports/ bionic-updates main universe" >> /etc/apt/sources.list
 
-Note "Setting up repo for Samba 4.11"
-echo "deb http://apt.van-belle.nl/debian bionic-samba411 main contrib non-free" > /etc/apt/sources.list.d/van-belle.list
-wget -O - http://apt.van-belle.nl/louis-van-belle.gpg-key.asc
-apt-key add louis-van-belle.gpg-key.asc
-rm louis-van-belle.gpg-key.asc
-
 Note "Updating Package Lists"
 apt update -y
 sleep 5             # System occasionally hangs if this is not performed
@@ -36,6 +30,13 @@ apt-get upgrade -y
 
 Note "Installing Baseline Software"
 apt install -y nano python3-dev python3-pip python3-cffi tasksel gnupg debconf-utils network-manager
+
+Note "Setting up repo for Samba 4.11"
+echo "deb http://apt.van-belle.nl/debian bionic-samba411 main contrib non-free" > /etc/apt/sources.list.d/van-belle.list
+wget http://apt.van-belle.nl/louis-van-belle.gpg-key.asc
+apt-key add louis-van-belle.gpg-key.asc
+rm louis-van-belle.gpg-key.asc
+apt update -y
 
 Note "Checking Samba Installer Policy"
 apt-cache policy samba
