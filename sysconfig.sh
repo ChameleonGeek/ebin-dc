@@ -18,17 +18,23 @@ EchoColor(){ # color, text
 
 Note(){ # text
 	# Prints the passed string in green
+	EchoColor "${GRN}" "################################################################################"
 	EchoColor "${GRN}" "$1";
+	EchoColor "${GRN}" "################################################################################"
 }
 
 TimeStamp(){
-	EchoColor "$(date)" "${YEL}"
+	EchoColor "${YEL}" "################################################################################"
+	EchoColor "${YEL}" "$(date)"
+	EchoColor "${YEL}" "################################################################################"
 }
 
 TimeStamp
 Note "Logging some info to assist in debugging"
 Note "Listing Block Devices"
 lsblk
+Note "Displaying filesystem type"
+df -Th | grep "^/dev"
 Note "tune2fs report for /dev/mmcblk0p1"
 tune2fs -l /dev/mmcblk0p1
 
@@ -59,8 +65,11 @@ apt install -y nano python3-dev python3-pip python3-cffi tasksel gnupg debconf-u
 
 TimeStamp
 Note "Installing Samba Build Prereqs"
+Note "Downloading bootstrap from Samba"
 wget -O bootstrap.sh "https://git.samba.org/?p=samba.git;a=blob_plain;f=bootstrap/generated-dists/ubuntu1804/bootstrap.sh;hb=v4-11-test"
+Note "Running Samba bootstrap"
 sudo bash bootstrap.sh
+Note "Removing Samba bootstrap"
 rm bootstrap.sh
 #apt install -y acl apt-utils attr autoconf bind9utils binutils bison build-essential chrpath curl debhelper dnsutils docbook-xml docbook-xsl flex gcc gdb git glusterfs-common gnutils gzip heimdal-multidev hostname htop krb5-config krb5-kdc krb5-user language-pack-en lcov libacl1-dev libaio-dev libarchive-dev libattr1-dev libavahi-common-dev libblkid-dev libbsd-dev libcap-dev libcephfs-dev libcups2-dev libdbus-1-dev libglib2.0-dev libgnutls28-dev libgpgme-dev libgpgme11-dev libicu-dev libjansson-dev libjs-jquery libjson-perl libkrb5-dev libldap2-dev liblmdb-dev libncurses5-dev libpam0g-dev libparse-yapp-perl libpcap-dev libpopt-dev libreadline-dev libsystemd-dev libtasn1-bin libtasn1-dev libunwind-dev lmdb-utils locales lsb-release make mawk mingw-w64 nettle-dev patch perl-modules perl pkg-config procps psmisc python-all-dev python-crypto python-dbg python-dev python-dnspython python-gpg python-markdown python3-dbg python3-dev python3-dnspython python3-gpg python3-iso8601 python3-markdown python3-matplotlib python3-pexpect python3 rng-tools rsync sed sudo tar tree uuid-dev xfslibs-dev xsltproc zlib1g-dev
 #Note "Second Samba build dependency check"
@@ -69,11 +78,11 @@ rm bootstrap.sh
 TimeStamp
 Note "Retrieving Samba Source Code"
 cd /opt
-wget -c https://ftp.samba.org/pub/samba/stable/samba-4.11.6.tar.gz
+wget -c https://ftp.samba.org/pub/samba/stable/samba-4.11.5.tar.gz
 
 Note "Extracting Samba Source Code"
-tar -zxvf samba-4.11.6.tar.gz
-cd samba-4.11.6
+tar -zxvf samba-4.11.5.tar.gz
+cd samba-4.11.5
 
 TimeStamp
 Note "Configuring for build from source"
@@ -87,7 +96,7 @@ Note "If this has succeeded, attempt \"make install\""
 #make install
 
 # Do this once the make is successful
-# Note "Cleaning up Samba build files"
-# rm -r /opt/samba-4.11.6
-# rm /opt/samba-4.11.6.tar.gz
+Note "Cleaning up Samba build files"
+rm -r /opt/samba-4.11.5
+rm /opt/samba-4.11.5.tar.gz
 TimeStamp
