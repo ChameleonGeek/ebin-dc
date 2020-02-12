@@ -22,7 +22,7 @@ Note(){ # text
 }
 
 TimeStamp(){
-	EchoColor "$(date)" YEL
+	EchoColor "$(date)" "${YEL}"
 }
 
 TimeStamp
