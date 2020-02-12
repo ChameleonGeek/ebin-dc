@@ -114,9 +114,13 @@ BuildKernel(){
   	make mvebu_v8_lsp_defconfig
 
 	if [ "$SETACL" == 1 ]; then
-		Note "Enabling ACLs in the config file"
+		Note "Enabling ACLs in the config file"		
   		sudo sed -i "s|# CONFIG_EXT3_FS_POSIX_ACL is not set|CONFIG_EXT3_FS_POSIX_ACL=y|" .config
   		sudo sed -i "s|# CONFIG_EXT4_FS_POSIX_ACL is not set|CONFIG_EXT4_FS_POSIX_ACL=y|" .config
+		
+		Note "Enabling file system security in the config file"
+  		sudo sed -i "s|# CONFIG_EXT3_FS_SECURITY is not set|CONFIG_EXT3_FS_SECURITY=y|" .config
+  		sudo sed -i "s|# CONFIG_EXT4_FS_SECURITY is not set|CONFIG_EXT4_FS_SECURITY=y|" .config
 	fi
 
 	# FUTURE IMPROVEMENT:  Handle spawning kernel config menu
