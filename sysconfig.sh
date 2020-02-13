@@ -1,5 +1,5 @@
 #!/bin/bash
-# UPDATED: 2020-02-13 13:47:30
+# UPDATED: 2020-02-13 13:50:16
 # ==============================================================================
 # ==============================================================================
 # 
@@ -222,6 +222,7 @@ BaselineInstall(){
 VanBelleAddedDeps(){
 	# Installs dependencies for building Samba which are not captured by Van Belle repos
 	# List is currently being built
+	apt install -y libcmocka-dev libldb-dev libtalloc-dev libtdb-dev libtevent-dev python3-ldb python3-ldb-dev python3-talloc-dev python3-tdb
 	return 0
 }
 
