@@ -85,5 +85,65 @@ cd 01-talloc/
 apt-get source talloc
 apt-get build-dep talloc -y
 
+Note "tevent"
+cd 02-tevent/
+apt-get source tevent
+apt-get build-dep tevent -y
+cd ..
+
+Note "tdb"
+cd 03-tdb/
+apt-get source tdb
+apt-get build-dep tdb -y
+cd ..
+
+Note "cmocka"
+cd 04-cmocka/
+apt-get source cmocka
+apt-get build-dep cmocka -y
+cd ..
+
+Note "ldb"
+cd 05-ldb/
+apt-get source ldb
+apt-get build-dep ldb -y
+cd ..
+
+Note "nss-wrapper"
+cd 06-nss-wrapper/
+apt-get source nss-wrapper
+apt-get build-dep nss-wrapper -y
+cd ..
+
+Note "resolv-wrapper"
+cd 07-resolv-wrapper/
+apt-get source resolv-wrapper
+apt-get build-dep resolv-wrapper -y
+cd ..
+
+Note "uid-wrapper"
+cd 08-uid-wrapper/
+apt-get source uid-wrapper
+apt-get build-dep uid-wrapper -y
+cd ..
+
+Note "socket-wrapper"
+cd 09-socket-wrapper/
+apt-get source socket-wrapper
+apt-get build-dep socket-wrapper -y
+cd ..
+
+Note "pam-wrapper"
+cd 10-pam-wrapper/
+apt-get source pam-wrapper
+apt-get build-dep pam-wrapper -y
+cd ..
+
+Note "samba"
+cd 11-samba/
+apt-get source samba
+apt-get build-dep samba -y
+cd ..
+
 TimeStamp
 Note "Complete.  Expand script if successful"
