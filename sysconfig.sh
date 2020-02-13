@@ -1,8 +1,7 @@
 #!/bin/bash
 
 # DEVELOPMENT SCRIPT!
-# THIS SCRIPT WILL FAIL!  IT IS INTENDED TO HELP ME WITH IDENTIFYING THE ACTUAL DEPENDENCIES TO BUILD SAMBA FROM SOURCE
-#     NO SINGLE SOURCE I'VE FOUND TRULY IDENTIFIES ALL DEPENDENCIES IN THIS SCENARIO
+# THIS SCRIPT WILL FAIL!  IT IS INTENDED TO HELP ME RESOLVE THE SAMBA BUILD FAILURES I AM ENCOUNTERING.
 
 BLU='\033[1;34m'
 GRN='\033[1;32m'
@@ -18,13 +17,11 @@ EchoColor(){ # color, text
 
 Note(){ # text
 	# Prints the passed string in green
-	EchoColor "${GRN}" "################################################################################"
 	EchoColor "${GRN}" "$1";
 	EchoColor "${GRN}" "################################################################################"
 }
 
 TimeStamp(){
-	EchoColor "${YEL}" "################################################################################"
 	EchoColor "${YEL}" "$(date)"
 	EchoColor "${YEL}" "################################################################################"
 }
@@ -40,7 +37,7 @@ tune2fs -l /dev/mmcblk0p1
 
 Note "Configuring hostname and hosts file"
 hostname espressobin
-echo -e "127.0.0.1\tespressobin.verdunn.lan espressobin" > /etc/hosts
+echo -e "127.0.0.1\tespressobin.home.lan espressobin" > /etc/hosts
 
 Note "Updating repositories"
 echo "deb http://ports.ubuntu.com/ubuntu-ports/ bionic main universe" > /etc/apt/sources.list
