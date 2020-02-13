@@ -1,5 +1,5 @@
 #!/bin/bash
-# UPDATED: 2020-02-13 13:13:13
+# UPDATED: 2020-02-13 13:47:30
 # ==============================================================================
 # ==============================================================================
 # 
@@ -162,7 +162,7 @@ SetHost(){
 }
 
 SetSourcesMain(){
-	Note "Updating repositories"
+	Note "Updating repositories to include \"universe\" sources"
 	echo "deb http://ports.ubuntu.com/ubuntu-ports/ bionic main universe" > /etc/apt/sources.list
 	echo "deb http://ports.ubuntu.com/ubuntu-ports/ bionic-security main universe" >> /etc/apt/sources.list
 	echo "deb http://ports.ubuntu.com/ubuntu-ports/ bionic-updates main universe" >> /etc/apt/sources.list
@@ -195,6 +195,8 @@ SetSourcesVanBelle(){
 # ======================================
 GetVanBelleSourceAndDeps(){ # <pkg #> <pkg name>
 	# Downloads Van Belle sources and installs the necessary dependencies
+	TimeStamp
+	Note "<<<<< Downloading Van Belle Source $2 >>>>>"
 	if ! [ -d "$1-$2" ]; then mkdir "$1-$2/"; fi
 	cd "$1-$2/"
 	apt-get source "$2"
