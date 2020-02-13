@@ -46,15 +46,6 @@ echo "deb http://ports.ubuntu.com/ubuntu-ports/ bionic main universe" > /etc/apt
 echo "deb http://ports.ubuntu.com/ubuntu-ports/ bionic-security main universe" >> /etc/apt/sources.list
 echo "deb http://ports.ubuntu.com/ubuntu-ports/ bionic-updates main universe" >> /etc/apt/sources.list
 
-Note "Adding repositories necessary to install Samba"
-echo "deb http://apt.van-belle.nl/debian bionic-samba411 main contrib non-free" > /etc/apt/sources.list.d/van-belle.list
-echo "deb-src http://apt.van-belle.nl/debian bionic-samba411 main contrib non-free" > /etc/apt/sources.list.d/van-belle.list
-
-Note "Adding GPG key for Van-Belle Repo"
-wget http://apt.van-belle.nl/louis-van-belle.gpg-key.asc
-apt-key add louis-van-belle.gpg-key.asc
-rm louis-van-belle.gpg-key.asc
-
 TimeStamp
 Note "Updating Package Lists"
 apt-get update
@@ -69,7 +60,27 @@ Note "Installing Baseline Software"
 apt install -y nano python3-dev python3-pip python3-cffi tasksel gnupg debconf-utils network-manager
 
 TimeStamp
+Note "Adding Van-Belle repository necessary to install Samba"
+echo "deb http://apt.van-belle.nl/debian bionic-samba411 main contrib non-free" > /etc/apt/sources.list.d/van-belle.list
+echo "deb-src http://apt.van-belle.nl/debian bionic-samba411 main contrib non-free" > /etc/apt/sources.list.d/van-belle.list
+
+Note "Adding GPG key for Van-Belle Repo"
+wget http://apt.van-belle.nl/louis-van-belle.gpg-key.asc
+apt-key add louis-van-belle.gpg-key.asc
+rm louis-van-belle.gpg-key.asc
+
+TimeStamp
+Note "Updating Package Lists with Van-Belle repo"
+apt-get update
+sleep 5             # System occasionally hangs if this is not performed
+
+TimeStamp
+if [ ! -d 01-talloc ]; then
+    mkdir 01-talloc 02-tevent 03-tdb 04-cmocka 05-ldb 06-nss-wrapper 07-resolv-wrapper 08-uid-wrapper 09-socket-wrapper 10-pam-wrapper 11-samba
+fi
+
 Note "Gathering source and dependencies"
+Note "talloc"
 cd 01-talloc/
 apt-get source talloc
 apt-get build-dep talloc -y
