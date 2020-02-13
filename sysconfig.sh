@@ -45,9 +45,15 @@ Note "Updating repositories"
 echo "deb http://ports.ubuntu.com/ubuntu-ports/ bionic main universe" > /etc/apt/sources.list
 echo "deb http://ports.ubuntu.com/ubuntu-ports/ bionic-security main universe" >> /etc/apt/sources.list
 echo "deb http://ports.ubuntu.com/ubuntu-ports/ bionic-updates main universe" >> /etc/apt/sources.list
-#echo "deb-src http://ports.ubuntu.com/ubuntu-ports/ bionic main universe" >> /etc/apt/sources.list
-#echo "deb-src http://ports.ubuntu.com/ubuntu-ports/ bionic-security main universe" >> /etc/apt/sources.list
-#echo "deb-src http://ports.ubuntu.com/ubuntu-ports/ bionic-updates main universe" >> /etc/apt/sources.list
+
+Note "Adding repositories necessary to install Samba"
+echo "deb http://apt.van-belle.nl/debian bionic-samba411 main contrib non-free" > /etc/apt/sources.list.d/van-belle.list
+echo "deb-src http://apt.van-belle.nl/debian bionic-samba411 main contrib non-free" > /etc/apt/sources.list.d/van-belle.list
+
+Note "Adding GPG key for Van-Belle Repo"
+wget http://apt.van-belle.nl/louis-van-belle.gpg-key.asc
+apt-key add louis-van-belle.gpg-key.asc
+rm louis-van-belle.gpg-key.asc
 
 TimeStamp
 Note "Updating Package Lists"
@@ -63,7 +69,10 @@ Note "Installing Baseline Software"
 apt install -y nano python3-dev python3-pip python3-cffi tasksel gnupg debconf-utils network-manager
 
 TimeStamp
-wget https://github.com/ChameleonGeek/ebin-dc/raw/master/optbuild.sh
-chmod +x optbuild.sh
-sudo bash optbuild.sh
+Note "Gathering source and dependencies"
+cd 01-talloc/
+apt-get source talloc
+apt-get build-dep talloc -y
+
 TimeStamp
+Note "Complete.  Expand script if successful"
