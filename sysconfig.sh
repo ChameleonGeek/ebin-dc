@@ -1,5 +1,5 @@
 #!/bin/bash
-# UPDATED: 2020-02-13 13:50:16
+# UPDATED: 2020-02-13 14:40:02
 # ==============================================================================
 # ==============================================================================
 # 
@@ -196,10 +196,16 @@ SetSourcesVanBelle(){
 GetVanBelleSourceAndDeps(){ # <pkg #> <pkg name>
 	# Downloads Van Belle sources and installs the necessary dependencies
 	TimeStamp
-	Note "<<<<< Downloading Van Belle Source $2 >>>>>"
+	Note "<<<<< Downloading Van Belle Source ($1) $2 >>>>>"
 	if ! [ -d "$1-$2" ]; then mkdir "$1-$2/"; fi
+
+	# User _apt must be the owner of these directories
+	# # Resolve "W: Download is performed unsandboxed as root as file '<specific file>' couldn't be accessed by user '_apt'. - pkgAcquire::Run (13: Permission denied)" errors
+	chown _apt "$1-$2/"
 	cd "$1-$2/"
+	# Retrieve the source files
 	apt-get source "$2"
+	# Build dependency list and install dependencies
 	apt-get build-dep "$2" -y
 	cd ..
 }
@@ -222,7 +228,8 @@ BaselineInstall(){
 VanBelleAddedDeps(){
 	# Installs dependencies for building Samba which are not captured by Van Belle repos
 	# List is currently being built
-	apt install -y libcmocka-dev libldb-dev libtalloc-dev libtdb-dev libtevent-dev python3-ldb python3-ldb-dev python3-talloc-dev python3-tdb
+	apt install -y libtalloc-dev 
+	apt install -y libcmocka-dev libldb-dev libtdb-dev libtevent-dev python3-ldb python3-ldb-dev python3-talloc-dev python3-tdb
 	return 0
 }
 
