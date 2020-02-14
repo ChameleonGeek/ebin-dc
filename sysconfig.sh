@@ -1,5 +1,5 @@
 #!/bin/bash
-# UPDATED: 2020-02-13 14:40:02
+# UPDATED: 2020-02-13 16:00:45
 # ==============================================================================
 # ==============================================================================
 # 
@@ -200,13 +200,26 @@ GetVanBelleSourceAndDeps(){ # <pkg #> <pkg name>
 	if ! [ -d "$1-$2" ]; then mkdir "$1-$2/"; fi
 
 	# User _apt must be the owner of these directories
-	# # Resolve "W: Download is performed unsandboxed as root as file '<specific file>' couldn't be accessed by user '_apt'. - pkgAcquire::Run (13: Permission denied)" errors
+	# Resolve "W: Download is performed unsandboxed as root as file '<specific file>' couldn't be accessed by user '_apt'. - pkgAcquire::Run (13: Permission denied)" errors
 	chown _apt "$1-$2/"
 	cd "$1-$2/"
-	# Retrieve the source files
+
+	Note "Retrieving source"
 	apt-get source "$2"
-	# Build dependency list and install dependencies
+
+	Note "Building and installing dependency list"
 	apt-get build-dep "$2" -y
+
+	# Move to folder to complete build process
+	cd $(ls -ltr|grep "drwx" |awk '{ print $NF }')
+	Note "Building source in $(pwd)"
+	Note "Configuring $2 for make"
+	./configure
+	Note "Making $2"
+	make
+	Note "Installing $2"
+	make install
+	cd ..
 	cd ..
 }
 
