@@ -208,7 +208,8 @@ GetVanBelleSourceAndDeps(){ # <pkg #> <pkg name>
 	apt-get source "$2"
 
 	Note "Building and installing dependency list"
-	apt-get build-dep "$2" -y
+	#apt-get build-dep "$2" -y
+	apt-get build-dep -v ./
 
 	# Move to folder to complete build process
 	cd $(ls -ltr|grep "drwx" |awk '{ print $NF }')
