@@ -68,4 +68,9 @@ PreConfig(){
 	sudo bash sysconfig.sh
 }
 
+# Necessary to stop CPU throttling which may trigger a kernel panic
+systemctl disable ondemand
+pkill ondemand
+
+# Run the script
 PreConfig
